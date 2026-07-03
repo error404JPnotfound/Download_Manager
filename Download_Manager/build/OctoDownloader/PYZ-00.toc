@@ -1,4 +1,4 @@
-('C:\\Users\\LENOVO\\.gemini\\antigravity\\scratch\\download_manager\\build\\OctoDownloader\\PYZ-00.pyz',
+('D:\\OCTO\\Download_Manager\\build\\OctoDownloader\\PYZ-00.pyz',
  [('Crypto',
    'C:\\Users\\LENOVO\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages\\Crypto\\__init__.py',
    'PYMODULE'),

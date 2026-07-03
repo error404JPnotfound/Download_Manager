@@ -806,9 +806,13 @@ def on_closing():
             browser_instance.stop()
         except:
             pass
+
     return True
 
 if __name__ == '__main__':
+    # Disable automatic DevTools popup in debug mode
+    webview.settings['OPEN_DEVTOOLS_IN_DEBUG'] = False
+
     # Initialize and start native PyWebView window
     window_instance = webview.create_window(
         title="OctoDownloader",

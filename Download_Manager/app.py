@@ -103,6 +103,7 @@ is_paused = False
 browser_instance = None
 download_thread = None
 window_instance = None
+is_yt_downloading = False
 
 # Download progress tracking variables
 active_url = None
@@ -353,6 +354,124 @@ async def download_worker(urls, headless):
             run_js("js_update_active_url", url_clean, "Analyzing link...")
             run_js("js_log", "Worker", f"Processing url {index + 1}/{len(urls)}: {url_clean}")
             
+            # YouTube Link detection in main queue
+            if "youtube.com" in url_clean or "youtu.be" in url_clean:
+                run_js("js_log", "System", "YouTube link detected in queue. Redirecting to yt-dlp module...")
+                run_js("js_update_active_url", url_clean, "Downloading via yt-dlp...")
+                
+                # Fetch quality preference or default to Best
+                cfg = load_config()
+                quality_preference = cfg.get("yt_quality_default", "1")
+                
+                # Define progress wrapper to map to GUI downloader progress
+                last_js_update = [0.0]
+                last_video_id = [None]
+                
+                def ytdlp_queue_progress(d):
+                    if not is_downloading:
+                        raise RuntimeError("Cancelled by user")
+                        
+                    # Extract active video title and playlist parameters
+                    info_dict = d.get('info_dict', {})
+                    video_id = info_dict.get('id')
+                    video_title = info_dict.get('title', 'YouTube Video')
+                    playlist_index = info_dict.get('playlist_index')
+                    playlist_count = info_dict.get('playlist_count')
+                    
+                    # Update current video filename dynamically if it changes
+                    if video_id and video_id != last_video_id[0]:
+                        last_video_id[0] = video_id
+                        status_msg = "Downloading..."
+                        if playlist_index is not None:
+                            total_str = f"/{playlist_count}" if playlist_count else ""
+                            status_msg = f"Downloading ({playlist_index}{total_str})..."
+                        run_js("js_update_active_url", url_clean, status_msg, video_title)
+                        run_js("js_log", "Worker", f"Starting playlist video: {video_title}")
+                        
+                    if d['status'] == 'downloading':
+                        downloaded = d.get('downloaded_bytes', 0)
+                        total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+                        speed = d.get('speed', 0.0)
+                        
+                        percent = 0.0
+                        if total > 0:
+                            percent = (downloaded / total) * 100
+                            
+                        now = time.time()
+                        is_final = percent >= 100.0 or downloaded == total
+                        if is_final or (now - last_js_update[0] >= 0.75):
+                            # Call JS progress update
+                            run_js("js_update_download_progress", url_clean, "downloading", round(percent, 1), speed, downloaded, total)
+                            last_js_update[0] = now
+                            
+                # Match filter hook to abort early on playlist items
+                def ytdlp_match_filter(info_dict, *, incomplete):
+                    if not is_downloading:
+                        raise RuntimeError("Cancelled by user")
+                    return None
+                
+                # Configure options
+                ydl_opts = {
+                    'outtmpl': os.path.join(str(DOWNLOAD_DIR), '%(playlist_title&{}|)s', '%(playlist_index&{:03d} - |)s%(title)s.%(ext)s'),
+                    'progress_hooks': [ytdlp_queue_progress],
+                    'match_filter': ytdlp_match_filter,
+                    'quiet': True,
+                    'no_warnings': True,
+                    'ignoreerrors': True,
+                }
+                
+                # Set format based on quality_preference
+                if quality_preference == '1':
+                    ydl_opts['format'] = 'bestvideo+bestaudio/best'
+                    ydl_opts['merge_output_format'] = 'mp4'
+                elif quality_preference == '2':
+                    ydl_opts['format'] = 'bestvideo[height<=1080][fps<=60]+bestaudio/best[height<=1080]'
+                    ydl_opts['merge_output_format'] = 'mp4'
+                elif quality_preference == '3':
+                    ydl_opts['format'] = 'bestvideo[height<=1080][fps<=30]+bestaudio/best[height<=1080]'
+                    ydl_opts['merge_output_format'] = 'mp4'
+                elif quality_preference == '4':
+                    ydl_opts['format'] = 'bestvideo[height<=720][fps<=60]+bestaudio/best[height<=720]'
+                    ydl_opts['merge_output_format'] = 'mp4'
+                elif quality_preference == '5':
+                    ydl_opts['format'] = 'bestvideo[height<=720][fps<=30]+bestaudio/best[height<=720]'
+                    ydl_opts['merge_output_format'] = 'mp4'
+                elif quality_preference == '6':
+                    ydl_opts['format'] = 'bestaudio/best'
+                    ydl_opts['postprocessors'] = [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
+                        'preferredquality': '192',
+                    }]
+                else:
+                    ydl_opts['format'] = 'bestvideo+bestaudio/best'
+                    ydl_opts['merge_output_format'] = 'mp4'
+                
+                try:
+                    import yt_dlp
+                    # Run extraction first to resolve final video title for history/UI
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(url_clean, download=False)
+                        resolved_title = info.get('title', 'YouTube Video')
+                        run_js("js_update_active_url", url_clean, "Downloading...", resolved_title)
+                        
+                        ydl.download([url_clean])
+                        
+                    run_js("js_update_download_progress", url_clean, "completed", 100, 0, 100, 100)
+                    add_history_record(url_clean, resolved_title, 'Completed')
+                except Exception as ytdlp_err:
+                    err_msg = str(ytdlp_err)
+                    if "Cancelled by user" in err_msg:
+                        run_js("js_update_active_url", url_clean, "Cancelled")
+                        add_history_record(url_clean, "YouTube Video (Cancelled)", 'Cancelled')
+                    else:
+                        run_js("js_log", "Error", f"yt-dlp queue download failed: {err_msg}")
+                        run_js("js_update_active_url", url_clean, "Failed")
+                        add_history_record(url_clean, "YouTube Video (Failed)", 'Cancelled')
+                
+                # Skip normal direct/browser download since we processed via yt-dlp
+                continue
+
             # Direct link fast download detection
             if is_direct_link(url_clean):
                 def direct_progress(received, total, state, filename):
@@ -480,7 +599,7 @@ async def download_worker(urls, headless):
                 
         # Close browser
         try:
-            browser.stop()
+            await browser.stop()
         except:
             pass
         run_js("js_log", "System", "Browser finished.")
@@ -513,6 +632,7 @@ def format_speed_helper(bytes_per_sec):
     return f"{format_bytes_helper(bytes_per_sec)}/s"
 
 def yt_dlp_worker(url, download_dir, quality_choice):
+    global is_yt_downloading
     try:
         import yt_dlp
     except ImportError:
@@ -520,9 +640,80 @@ def yt_dlp_worker(url, download_dir, quality_choice):
         run_js("js_update_yt_progress", None, 0, "0 KB/s", "0 B", "0 B", "Unknown", "failed")
         return
         
-    title_box = ["Connecting..."]
+    is_yt_downloading = True
     
+    # If URL contains list=, force direct playlist URL conversion
+    if 'list=' in url:
+        import urllib.parse
+        try:
+            parsed_url = urllib.parse.urlparse(url)
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            playlist_id = query_params.get('list', [None])[0]
+            if playlist_id:
+                url = f"https://www.youtube.com/playlist?list={playlist_id}"
+                run_js("js_log", "Worker", f"Constructed direct playlist link: {url}")
+        except Exception as parse_err:
+            run_js("js_log", "Error", f"Failed to parse playlist query parameter: {parse_err}")
+
+    # 1. Check URL type quickly (playlist or video) using extract_flat
+    run_js("js_log", "Worker", f"Checking URL type: {url}")
+    run_js("js_update_yt_progress", "Checking link...", 0, "0 KB/s", "Connecting", "Connecting", "Unknown", "connecting")
+    
+    ydl_opts_flat = {
+        'extract_flat': True,
+        'skip_download': True,
+        'quiet': True,
+        'no_warnings': True,
+    }
+    
+    is_playlist = False
+    playlist_title = "Playlist"
+    entries = []
+    
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts_flat) as ydl:
+            info = ydl.extract_info(url, download=False)
+            if info and (info.get('_type') == 'playlist' or 'entries' in info):
+                is_playlist = True
+                playlist_title = info.get('title', 'Playlist')
+                raw_entries = info.get('entries', [])
+                if not isinstance(raw_entries, list):
+                    try:
+                        raw_entries = list(raw_entries)
+                    except Exception:
+                        pass
+                entries = [e for e in raw_entries if e]
+                run_js("js_log", "Worker", f"Detected playlist: '{playlist_title}' with {len(entries)} items.")
+    except Exception as e:
+        run_js("js_log", "Error", f"Metadata extraction failed: {e}")
+        is_playlist = False
+
+    # Define hook variables to share state
+    last_idx = [-1]
+    active_title = ["Connecting..."]
+
     def progress_hook(d):
+        if not is_yt_downloading:
+            raise RuntimeError("Cancelled by user")
+            
+        info_dict = d.get('info_dict', {})
+        video_title = info_dict.get('title') or active_title[0]
+        
+        # Determine playlist indexing
+        playlist_index = info_dict.get('playlist_index')
+        playlist_count = info_dict.get('playlist_count')
+        
+        if playlist_index is not None:
+            current_idx = playlist_index - 1
+            if current_idx != last_idx[0]:
+                if last_idx[0] >= 0:
+                    run_js("js_update_yt_playlist_item", last_idx[0], "completed")
+                run_js("js_update_yt_playlist_item", current_idx, "downloading")
+                last_idx[0] = current_idx
+            title_display = f"({playlist_index}/{playlist_count or len(entries)}) {video_title}"
+        else:
+            title_display = video_title
+
         if d['status'] == 'downloading':
             downloaded = d.get('downloaded_bytes', 0)
             total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
@@ -540,7 +731,7 @@ def yt_dlp_worker(url, download_dir, quality_choice):
             
             run_js(
                 "js_update_yt_progress", 
-                title_box[0], 
+                title_display, 
                 round(percent, 1), 
                 speed_str, 
                 received_str, 
@@ -548,11 +739,18 @@ def yt_dlp_worker(url, download_dir, quality_choice):
                 eta_str, 
                 "downloading"
             )
-            
         elif d['status'] == 'finished':
+            # Add video to history
+            video_url_val = info_dict.get('webpage_url') or info_dict.get('original_url') or url
+            add_history_record(video_url_val, video_title, 'Completed')
+            
+            if playlist_index is not None:
+                current_idx = playlist_index - 1
+                run_js("js_update_yt_playlist_item", current_idx, "completed")
+            
             run_js(
                 "js_update_yt_progress", 
-                title_box[0], 
+                title_display, 
                 100, 
                 "0 KB/s", 
                 "Finished", 
@@ -561,60 +759,97 @@ def yt_dlp_worker(url, download_dir, quality_choice):
                 "downloading"
             )
 
-    # Setup options
-    ydl_opts = {
-        'outtmpl': os.path.join(str(download_dir), '%(title)s.%(ext)s'),
-        'progress_hooks': [progress_hook],
-        'quiet': True,
-        'no_warnings': True,
-    }
-    
-    # 1: Best Quality, 2: 1080p60, 3: 1080p30, 4: 720p60, 5: 720p30, 6: Audio MP3
-    if quality_choice == '1':
-        ydl_opts['format'] = 'bestvideo+bestaudio/best'
-        ydl_opts['merge_output_format'] = 'mp4'
-    elif quality_choice == '2':
-        ydl_opts['format'] = 'bestvideo[height<=1080][fps<=60]+bestaudio/best[height<=1080]'
-        ydl_opts['merge_output_format'] = 'mp4'
-    elif quality_choice == '3':
-        ydl_opts['format'] = 'bestvideo[height<=1080][fps<=30]+bestaudio/best[height<=1080]'
-        ydl_opts['merge_output_format'] = 'mp4'
-    elif quality_choice == '4':
-        ydl_opts['format'] = 'bestvideo[height<=720][fps<=60]+bestaudio/best[height<=720]'
-        ydl_opts['merge_output_format'] = 'mp4'
-    elif quality_choice == '5':
-        ydl_opts['format'] = 'bestvideo[height<=720][fps<=30]+bestaudio/best[height<=720]'
-        ydl_opts['merge_output_format'] = 'mp4'
-    elif quality_choice == '6':
-        ydl_opts['format'] = 'bestaudio/best'
-        ydl_opts['postprocessors'] = [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }]
-    else:
-        ydl_opts['format'] = 'bestvideo+bestaudio/best'
-        ydl_opts['merge_output_format'] = 'mp4'
+    # Setup option formatting
+    def get_ydl_opts(download_dir, quality):
+        ydl_opts = {
+            'outtmpl': os.path.join(str(download_dir), '%(playlist_title&{}|)s', '%(playlist_index&{:03d} - |)s%(title)s.%(ext)s'),
+            'progress_hooks': [progress_hook],
+            'quiet': True,
+            'no_warnings': True,
+            'ignoreerrors': True, # ignore errors to prevent breaking playlists
+        }
+        
+        # 1: Best Quality, 2: 1080p60, 3: 1080p30, 4: 720p60, 5: 720p30, 6: Audio MP3
+        if quality == '1':
+            ydl_opts['format'] = 'bestvideo+bestaudio/best'
+            ydl_opts['merge_output_format'] = 'mp4'
+        elif quality == '2':
+            ydl_opts['format'] = 'bestvideo[height<=1080][fps<=60]+bestaudio/best[height<=1080]'
+            ydl_opts['merge_output_format'] = 'mp4'
+        elif quality == '3':
+            ydl_opts['format'] = 'bestvideo[height<=1080][fps<=30]+bestaudio/best[height<=1080]'
+            ydl_opts['merge_output_format'] = 'mp4'
+        elif quality == '4':
+            ydl_opts['format'] = 'bestvideo[height<=720][fps<=60]+bestaudio/best[height<=720]'
+            ydl_opts['merge_output_format'] = 'mp4'
+        elif quality == '5':
+            ydl_opts['format'] = 'bestvideo[height<=720][fps<=30]+bestaudio/best[height<=720]'
+            ydl_opts['merge_output_format'] = 'mp4'
+        elif quality == '6':
+            ydl_opts['format'] = 'bestaudio/best'
+            ydl_opts['postprocessors'] = [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }]
+        else:
+            ydl_opts['format'] = 'bestvideo+bestaudio/best'
+            ydl_opts['merge_output_format'] = 'mp4'
+        return ydl_opts
 
-    run_js("js_log", "Worker", f"Connecting to YouTube URL: {url}")
-    
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            title = info.get('title', 'Unknown Title')
-            title_box[0] = title
+    ydl_opts = get_ydl_opts(download_dir, quality_choice)
+
+    if is_playlist and entries:
+        titles = [e.get('title') or f"Video #{i+1}" for i, e in enumerate(entries)]
+        run_js("js_init_yt_playlist", playlist_title, titles)
+        
+        run_js("js_log", "Worker", f"Starting direct playlist download process: {url}")
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
             
-            run_js("js_log", "Worker", f"Video Title Resolved: {title}")
-            run_js("js_update_yt_progress", title, 0, "0 KB/s", "Connecting", "Connecting", "Unknown", "downloading")
-            
-            ydl.download([url])
-            
-            add_history_record(url, title, 'Completed')
-            run_js("js_update_yt_progress", title, 100, "0 KB/s", "Finished", "Finished", "0s", "completed")
-            
-    except Exception as e:
-        run_js("js_log", "Error", f"yt-dlp download failed: {str(e)}")
-        run_js("js_update_yt_progress", title_box[0], 0, "0 KB/s", "Failed", "Failed", "Unknown", "failed")
+            run_js("js_update_yt_progress", f"Playlist: {playlist_title}", 100, "0 KB/s", "Finished", "Finished", "0s", "completed")
+            run_js("js_log", "System", "YouTube playlist download completed successfully!")
+        except Exception as e:
+            err_msg = str(e)
+            if "Cancelled by user" in err_msg:
+                run_js("js_log", "System", "YouTube download cancelled by user.")
+                run_js("js_update_yt_progress", f"Playlist: {playlist_title}", 100, "0 KB/s", "Cancelled", "Cancelled", "Unknown", "canceled")
+                if last_idx[0] >= 0:
+                    run_js("js_update_yt_playlist_item", last_idx[0], "failed")
+            else:
+                run_js("js_log", "Error", f"yt-dlp playlist download failed: {err_msg}")
+                run_js("js_update_yt_progress", f"Playlist: {playlist_title}", 100, "0 KB/s", "Failed", "Failed", "Unknown", "failed")
+                if last_idx[0] >= 0:
+                    run_js("js_update_yt_playlist_item", last_idx[0], "failed")
+    else:
+        run_js("js_log", "Worker", f"Starting single video download process: {url}")
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                title = info.get('title', 'Unknown Title')
+                active_title[0] = title
+                
+                run_js("js_log", "Worker", f"Video Title Resolved: {title}")
+                run_js("js_update_yt_progress", title, 0, "0 KB/s", "Connecting", "Connecting", "Unknown", "downloading")
+                
+                if not is_yt_downloading:
+                    raise RuntimeError("Cancelled by user")
+                    
+                ydl.download([url])
+                
+                # Single history entry is already added in the finished state of progress_hook
+                run_js("js_update_yt_progress", title, 100, "0 KB/s", "Finished", "Finished", "0s", "completed")
+        except Exception as e:
+            err_msg = str(e)
+            if "Cancelled by user" in err_msg:
+                run_js("js_log", "System", "YouTube download cancelled by user.")
+                run_js("js_update_yt_progress", active_title[0], 0, "0 KB/s", "Cancelled", "Cancelled", "Unknown", "canceled")
+            else:
+                run_js("js_log", "Error", f"yt-dlp download failed: {err_msg}")
+                run_js("js_update_yt_progress", active_title[0], 0, "0 KB/s", "Failed", "Failed", "Unknown", "failed")
+
+    is_yt_downloading = False
 
 # Exposed functions for Javascript calling inside PyWebView
 class Api:
@@ -635,9 +870,12 @@ class Api:
             run_js("js_log", "System", "Stopping download runner...")
             if browser_instance:
                 try:
-                    browser_instance.stop()
-                except Exception:
-                    pass
+                    # browser_instance.stop() is a coroutine. Schedule it on the browser's loop threadsafe.
+                    loop = browser_instance.loop
+                    if loop and loop.is_running():
+                        asyncio.run_coroutine_threadsafe(browser_instance.stop(), loop)
+                except Exception as stop_err:
+                    run_js("js_log", "Error", f"Failed to stop browser automation: {stop_err}")
             return "Stopping"
         return "Not running"
 
@@ -695,7 +933,8 @@ class Api:
         return True
 
     def start_yt_download(self, url, quality_choice):
-        global DOWNLOAD_DIR
+        global DOWNLOAD_DIR, is_yt_downloading
+        is_yt_downloading = True
         thread = threading.Thread(
             target=yt_dlp_worker,
             args=(url, DOWNLOAD_DIR, quality_choice),
@@ -703,6 +942,11 @@ class Api:
         )
         thread.start()
         return "Started"
+
+    def stop_yt_download(self):
+        global is_yt_downloading
+        is_yt_downloading = False
+        return "Stopped"
 
     def select_download_directory(self):
         global DOWNLOAD_DIR, window_instance

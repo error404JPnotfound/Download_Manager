@@ -41,10 +41,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 16 17"/><polyline points="12 5 18 11 24 5"/></svg>
                     System Log
                 </button>
-                <button class="nav-item" id="nav-yt">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
-                    YT Downloader
-                </button>
+
                 <button class="nav-item" id="nav-customize">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     Customize
@@ -104,22 +101,14 @@
                     <div class="panel-body">
                         <label for="url-inputs" class="sr-only">Paste URLs here (one per line):</label>
                         <textarea id="url-inputs" placeholder="Paste your download URLs here...&#10;e.g., https://example.com/download-page-1&#10;https://example.com/download-page-2" spellcheck="false"></textarea>
-                        
-                        <!-- YouTube Quality Card (Hidden by default, shown when YT link is detected) -->
-                        <div id="yt-quality-card" class="hidden" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-top: 16px; margin-bottom: 16px; transition: all 0.5s ease;">
-                            <div style="font-weight: 600; color: var(--text-main); font-size: 0.85rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                                <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px; color: var(--primary);"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.518 3.5 12 3.5 12 3.5s-7.518 0-9.388.553a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11C4.482 20.5 12 20.5 12 20.5s7.518 0 9.388-.553a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                                YouTube Link Detected
+                        <div class="reorder-list-container hidden" id="reorder-list-container">
+                            <div class="reorder-list-header">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                                <span>Drag to reorder download sequence</span>
                             </div>
-                            <label for="yt-dl-quality" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Select Video Download Quality:</label>
-                            <select id="yt-dl-quality" class="text-input" style="width: 100%; font-family: inherit; font-size: 0.85rem; padding: 8px 12px; background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
-                                <option value="1">Best Quality Combined (Up to 4K/60fps)</option>
-                                <option value="2">1080p at 60fps (or best available)</option>
-                                <option value="3">1080p at 30fps (saves space)</option>
-                                <option value="4">720p at 60fps (or best available)</option>
-                                <option value="5">720p at 30fps (saves space)</option>
-                                <option value="6">Audio Only (MP3 format extraction)</option>
-                            </select>
+                            <div class="reorder-list" id="reorder-list">
+                                <!-- Draggable items injected here -->
+                            </div>
                         </div>
                         
                         <div class="actions-group">
@@ -211,56 +200,7 @@
                 </div>
             </section>
 
-            <!-- YouTube Downloader Section -->
-            <section class="panel glass-panel hidden" id="yt-section" style="margin-bottom: 24px;">
-                <div class="panel-header">
-                    <h3>YouTube & Video Downloader</h3>
-                </div>
-                <div class="panel-body">
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
-                        Paste any YouTube video link below, select your target quality option, and download directly to your local drive.
-                    </p>
-                    
-                    <div class="input-group" style="margin-bottom: 20px;">
-                        <label for="yt-url-input">Video Link / URL</label>
-                        <input type="text" id="yt-url-input" class="text-input" placeholder="https://www.youtube.com/watch?v=..." style="width: 100%; margin-top: 6px;">
-                    </div>
-                    
-                    <div class="input-group" style="margin-bottom: 24px;">
-                        <label for="yt-quality-select">Target Quality / Format</label>
-                        <select id="yt-quality-select" class="text-input" style="width: 100%; margin-top: 6px; background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: var(--radius-md); font-family: inherit;">
-                            <option value="1">Best Quality Combined (Up to 4K/60fps)</option>
-                            <option value="2">1080p at 60fps (or best available)</option>
-                            <option value="3">1080p at 30fps (saves space)</option>
-                            <option value="4">720p at 60fps (or best available)</option>
-                            <option value="5">720p at 30fps (saves space)</option>
-                            <option value="6">Audio Only (MP3 format extraction)</option>
-                        </select>
-                    </div>
-                    
-                    <div style="margin-bottom: 24px;">
-                        <button class="btn btn-primary" id="btn-yt-start" style="width: 100%;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            Start Video Download
-                        </button>
-                    </div>
 
-                    <!-- YT Progress Panel -->
-                    <div id="yt-progress-container" class="hidden" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; margin-top: 20px;">
-                        <div style="font-weight: 600; color: var(--text-main); font-size: 0.95rem; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="yt-video-title">
-                            Connecting...
-                        </div>
-                        <div class="download-progress-bar-wrapper" style="height: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; overflow: hidden; margin-bottom: 12px;">
-                            <div id="yt-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 4px; transition: width 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);"></div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
-                            <span id="yt-speed" style="font-weight: 600; color: var(--secondary);">0 KB/s</span>
-                            <span id="yt-progress-text">0% (0 Bytes / 0 Bytes)</span>
-                            <span id="yt-eta">ETA: Unknown</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             <!-- History Section -->
             <section class="panel glass-panel hidden" id="history-section" style="margin-bottom: 24px;">
@@ -297,6 +237,36 @@
             </section>
         </main>
     </div>
+    <!-- YouTube Quality Select Modal -->
+    <div id="yt-quality-modal" class="modal-overlay hidden">
+        <div class="modal-card glass-panel fade-in" style="max-width: 440px;">
+            <div class="modal-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="color: var(--primary);"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.518 3.5 12 3.5 12 3.5s-7.518 0-9.388.553a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11C4.482 20.5 12 20.5 12 20.5s7.518 0 9.388-.553a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                <h3 style="margin: 0;">YouTube Quality Settings</h3>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">We detected one or more YouTube links in your download queue. Please select your target quality option:</p>
+                <div class="input-group" style="margin-bottom: 24px;">
+                    <div class="yt-input-container">
+                        <svg class="yt-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <select id="modal-yt-quality" class="text-input-yt">
+                            <option value="1">Best Quality Combined (Up to 4K/60fps)</option>
+                            <option value="2">1080p at 60fps (or best available)</option>
+                            <option value="3">1080p at 30fps (saves space)</option>
+                            <option value="4">720p at 60fps (or best available)</option>
+                            <option value="5">720p at 30fps (saves space)</option>
+                            <option value="6">Audio Only (MP3 format extraction)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-tertiary" id="btn-yt-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-yt-modal-confirm">Confirm & Start</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom Confirm Modal -->
     <div id="confirm-modal" class="modal-overlay hidden">
         <div class="modal-card glass-panel fade-in">

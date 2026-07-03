@@ -71,19 +71,14 @@ const hexAccent = document.getElementById('hex-accent');
 const hexBg = document.getElementById('hex-bg');
 const chkShowConsoleDownloads = document.getElementById('chk-show-console-downloads');
 const queuePanelSection = document.getElementById('queue-panel-section');
+const reorderListContainer = document.getElementById('reorder-list-container');
+const reorderList = document.getElementById('reorder-list');
 
-// YT Downloader variables
-const navYt = document.getElementById('nav-yt');
-const ytSection = document.getElementById('yt-section');
-const ytUrlInput = document.getElementById('yt-url-input');
-const ytQualitySelect = document.getElementById('yt-quality-select');
-const btnYtStart = document.getElementById('btn-yt-start');
-const ytProgressContainer = document.getElementById('yt-progress-container');
-const ytVideoTitle = document.getElementById('yt-video-title');
-const ytProgressBar = document.getElementById('yt-progress-bar');
-const ytSpeed = document.getElementById('yt-speed');
-const ytProgressText = document.getElementById('yt-progress-text');
-const ytEta = document.getElementById('yt-eta');
+// YouTube Quality modal variables
+const ytQualityModal = document.getElementById('yt-quality-modal');
+const btnYtModalCancel = document.getElementById('btn-yt-modal-cancel');
+const btnYtModalConfirm = document.getElementById('btn-yt-modal-confirm');
+const selectModalYtQuality = document.getElementById('modal-yt-quality');
 
 // Local application state
 let queueItems = [];
@@ -175,33 +170,66 @@ function parseAndBuildQueue() {
         .map(line => line.trim())
         .filter(line => line.length > 0);
     
-    // Quick comparison: if list is identical, don't recreate DOM elements (preserves state)
-    const newUrls = lines;
-    const currentUrls = queueItems.map(item => item.url);
-    if (JSON.stringify(newUrls) === JSON.stringify(currentUrls)) {
-        return;
+    // Show or hide reorder list based on whether there are URLs
+    if (reorderListContainer) {
+        if (lines.length > 0) {
+            reorderListContainer.classList.remove('hidden');
+            buildReorderList(lines);
+        } else {
+            reorderListContainer.classList.add('hidden');
+        }
     }
+    
+    // Build new list preserving state of existing entries
+    const existingItems = {};
+    queueItems.forEach(item => {
+        existingItems[item.url] = item;
+    });
 
-    // Build new list
-    queueItems = newUrls.map(url => ({
-        url: url,
-        id: getUrlId(url),
-        status: 'queued',
-        filename: ''
-    }));
+    queueItems = lines.map(url => {
+        if (existingItems[url]) {
+            return existingItems[url];
+        }
+        return {
+            url: url,
+            id: getUrlId(url),
+            status: 'queued',
+            filename: ''
+        };
+    });
 
     // Clear and redraw container
     const activeItems = queueList.querySelectorAll('.download-item');
     activeItems.forEach(el => el.remove());
 
-    queueItems.forEach(item => {
+    queueItems.forEach((item, index) => {
         const itemEl = document.createElement('div');
         itemEl.className = 'download-item';
         itemEl.id = item.id;
+        
+        let statusClass = 'queued';
+        let statusText = 'Queued';
+        if (item.status === 'downloading' || item.status.includes('downloading')) {
+            statusClass = 'running';
+            statusText = item.status;
+        } else if (item.status === 'completed' || item.status.toLowerCase() === 'completed') {
+            statusClass = 'completed';
+            statusText = 'Completed';
+        } else if (item.status.includes('failed') || item.status.includes('error') || item.status.includes('fail')) {
+            statusClass = 'failed';
+            statusText = 'Failed';
+        } else if (item.status && item.status !== 'queued') {
+            statusClass = 'running';
+            statusText = item.status;
+        }
+
         itemEl.innerHTML = `
             <div class="download-item-header">
-                <span class="download-url" title="${escapeHTML(item.url)}">${escapeHTML(item.url)}</span>
-                <span class="download-status-badge queued">Queued</span>
+                <div style="display: flex; align-items: center; gap: 8px; max-width: 75%;">
+                    <span class="queue-index-badge">${index + 1}</span>
+                    <span class="download-url" title="${escapeHTML(item.url)}">${escapeHTML(item.url)}</span>
+                </div>
+                <span class="download-status-badge ${statusClass}">${statusText}</span>
             </div>
             <div class="download-item-body">
                 <span class="download-filename">${item.filename || 'Pending...'}</span>
@@ -217,9 +245,109 @@ function parseAndBuildQueue() {
             </div>
         `;
         queueList.appendChild(itemEl);
+
+        // Restore active progress graphics if item is downloading
+        if (item.progress && (item.status === 'downloading' || item.status.includes('downloading'))) {
+            const progressContainer = itemEl.querySelector('.download-progress-container');
+            const progressBar = itemEl.querySelector('.download-progress-bar');
+            const speedEl = itemEl.querySelector('.download-speed');
+            const progressTextEl = itemEl.querySelector('.download-progress-text');
+            if (progressContainer) progressContainer.style.display = 'flex';
+            if (progressBar) progressBar.style.width = `${item.progress.percent}%`;
+            if (speedEl) speedEl.textContent = formatSpeed(item.progress.speed);
+            if (progressTextEl) {
+                if (item.progress.total > 0) {
+                    progressTextEl.textContent = `${item.progress.percent}% (${formatBytes(item.progress.received)} / ${formatBytes(item.progress.total)})`;
+                } else {
+                    progressTextEl.textContent = `${formatBytes(item.progress.received)}`;
+                }
+            }
+        }
     });
 
     updateQueueState();
+}
+
+// Build the draggable reorder list below the paste box
+let dragSrcEl = null;
+
+function buildReorderList(lines) {
+    reorderList.innerHTML = '';
+    lines.forEach((url, index) => {
+        const item = document.createElement('div');
+        item.className = 'reorder-item';
+        item.draggable = true;
+        item.dataset.index = index;
+        item.innerHTML = `
+            <span class="reorder-grip">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/></svg>
+            </span>
+            <span class="reorder-index">${index + 1}</span>
+            <span class="reorder-url" title="${escapeHTML(url)}">${escapeHTML(url)}</span>
+        `;
+
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('dragenter', handleDragEnter);
+        item.addEventListener('dragleave', handleDragLeave);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragend', handleDragEnd);
+
+        reorderList.appendChild(item);
+    });
+}
+
+function handleDragStart(e) {
+    dragSrcEl = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', this.dataset.index);
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function handleDragEnter(e) {
+    e.preventDefault();
+    this.classList.add('drag-over');
+}
+
+function handleDragLeave() {
+    this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    this.classList.remove('drag-over');
+
+    if (dragSrcEl !== this) {
+        const fromIndex = parseInt(dragSrcEl.dataset.index);
+        const toIndex = parseInt(this.dataset.index);
+
+        // Get current lines from textarea
+        const lines = urlInputs.value.split('\n')
+            .map(l => l.trim())
+            .filter(l => l.length > 0);
+
+        // Move the item
+        const [moved] = lines.splice(fromIndex, 1);
+        lines.splice(toIndex, 0, moved);
+
+        // Write back and rebuild
+        urlInputs.value = lines.join('\n');
+        parseAndBuildQueue();
+    }
+}
+
+function handleDragEnd() {
+    this.classList.remove('dragging');
+    reorderList.querySelectorAll('.reorder-item').forEach(item => {
+        item.classList.remove('drag-over');
+        item.classList.remove('dragging');
+    });
 }
 
 // Helper to safely fetch the PyWebView Python API
@@ -246,20 +374,9 @@ async function getPythonApi() {
 // Event Listeners
 urlInputs.addEventListener('input', parseAndBuildQueue);
 
-btnStart.addEventListener('click', async () => {
-    parseAndBuildQueue(); // Run once more to ensure synchronized state
-    if (queueItems.length === 0) {
-        js_log("System", "Error: No links in the queue. Please paste links first.");
-        return;
-    }
-
-    // Show the queue panel and adjust grid columns
+async function startQueueDownloads(urls) {
     showQueuePanel();
-
-    const urls = queueItems.map(item => item.url);
-
     js_log("System", `Starting downloads queue of ${urls.length} items...`);
-    
     try {
         const api = await getPythonApi();
         const result = await api.start_downloads(urls, true);
@@ -267,6 +384,43 @@ btnStart.addEventListener('click', async () => {
     } catch (e) {
         js_log("Error", `Communication error: ${e.message}`);
     }
+}
+
+btnStart.addEventListener('click', async () => {
+    parseAndBuildQueue(); // Run once more to ensure synchronized state
+    if (queueItems.length === 0) {
+        js_log("System", "Error: No links in the queue. Please paste links first.");
+        return;
+    }
+
+    const urls = queueItems.map(item => item.url);
+    const hasYoutube = urls.some(url => url.includes('youtube.com') || url.includes('youtu.be'));
+
+    if (hasYoutube) {
+        // Show quality select modal
+        ytQualityModal.classList.remove('hidden');
+    } else {
+        await startQueueDownloads(urls);
+    }
+});
+
+btnYtModalCancel.addEventListener('click', () => {
+    ytQualityModal.classList.add('hidden');
+});
+
+btnYtModalConfirm.addEventListener('click', async () => {
+    ytQualityModal.classList.add('hidden');
+    const selectedQuality = selectModalYtQuality.value;
+    try {
+        const api = await getPythonApi();
+        // Save the quality setting to backend config
+        await api.save_config_value("yt_quality_default", selectedQuality);
+        js_log("System", `Target YouTube quality set to: ${selectedQuality}`);
+    } catch (e) {
+        console.error("Failed to save YouTube quality selection:", e);
+    }
+    const urls = queueItems.map(item => item.url);
+    await startQueueDownloads(urls);
 });
 
 btnPause.addEventListener('click', async () => {
@@ -376,7 +530,6 @@ btnClearConsole.addEventListener('click', () => {
 // Tab Switching Event Listeners
 navDownloads.addEventListener('click', () => {
     navDownloads.classList.add('active');
-    navYt.classList.remove('active');
     navConsole.classList.remove('active');
     navHistory.classList.remove('active');
     navCustomize.classList.remove('active');
@@ -389,42 +542,21 @@ navDownloads.addEventListener('click', () => {
     
     historySection.classList.add('hidden');
     customizeSection.classList.add('hidden');
-    ytSection.classList.add('hidden');
     
     // Apply user preference for console visibility in downloads tab
     applyConsolePreference();
     consoleSection.classList.remove('full-height');
 });
 
-navYt.addEventListener('click', () => {
-    navYt.classList.add('active');
-    navDownloads.classList.remove('active');
-    navConsole.classList.remove('active');
-    navHistory.classList.remove('active');
-    navCustomize.classList.remove('active');
-    
-    contentGrid.classList.add('hidden');
-    consoleSection.classList.add('hidden');
-    historySection.classList.add('hidden');
-    customizeSection.classList.add('hidden');
-    
-    ytSection.classList.remove('hidden');
-    ytSection.classList.remove('fade-in');
-    void ytSection.offsetWidth; // Trigger reflow
-    ytSection.classList.add('fade-in');
-});
-
 navConsole.addEventListener('click', () => {
     navConsole.classList.add('active');
     navDownloads.classList.remove('active');
-    navYt.classList.remove('active');
     navHistory.classList.remove('active');
     navCustomize.classList.remove('active');
     
     contentGrid.classList.add('hidden');
     historySection.classList.add('hidden');
     customizeSection.classList.add('hidden');
-    ytSection.classList.add('hidden');
     consoleSection.classList.remove('hidden');
     
     consoleSection.classList.remove('full-height');
@@ -437,14 +569,12 @@ navConsole.addEventListener('click', () => {
 navHistory.addEventListener('click', () => {
     navHistory.classList.add('active');
     navDownloads.classList.remove('active');
-    navYt.classList.remove('active');
     navConsole.classList.remove('active');
     navCustomize.classList.remove('active');
     
     contentGrid.classList.add('hidden');
     consoleSection.classList.add('hidden');
     customizeSection.classList.add('hidden');
-    ytSection.classList.add('hidden');
     
     historySection.classList.remove('hidden');
     historySection.classList.remove('fade-in');
@@ -457,14 +587,12 @@ navHistory.addEventListener('click', () => {
 navCustomize.addEventListener('click', () => {
     navCustomize.classList.add('active');
     navDownloads.classList.remove('active');
-    navYt.classList.remove('active');
     navConsole.classList.remove('active');
     navHistory.classList.remove('active');
     
     contentGrid.classList.add('hidden');
     consoleSection.classList.add('hidden');
     historySection.classList.add('hidden');
-    ytSection.classList.add('hidden');
     
     customizeSection.classList.remove('hidden');
     customizeSection.classList.remove('fade-in');
@@ -600,6 +728,15 @@ window.js_update_active_url = function(url, status, filename = null) {
     const id = getUrlId(url);
     const itemEl = document.getElementById(id);
     if (!itemEl) return;
+
+    // Cache the status and filename changes inside the local state array
+    const cachedItem = queueItems.find(item => item.url === url);
+    if (cachedItem) {
+        cachedItem.status = status;
+        if (filename) {
+            cachedItem.filename = filename;
+        }
+    }
 
     const badge = itemEl.querySelector('.download-status-badge');
     const filenameEl = itemEl.querySelector('.download-filename');
@@ -745,6 +882,13 @@ window.js_update_download_progress = function(url, state, percent, speed, receiv
     const itemEl = document.getElementById(id);
     if (!itemEl) return;
 
+    // Cache active progress metrics in local state array
+    const cachedItem = queueItems.find(item => item.url === url);
+    if (cachedItem) {
+        cachedItem.status = state;
+        cachedItem.progress = { percent, speed, received, total };
+    }
+
     const badge = itemEl.querySelector('.download-status-badge');
     const progressContainer = itemEl.querySelector('.download-progress-container');
     const progressBar = itemEl.querySelector('.download-progress-bar');
@@ -777,84 +921,7 @@ window.js_update_download_progress = function(url, state, percent, speed, receiv
     }
 };
 
-// Start YT Download button click listener
-if (btnYtStart) {
-    btnYtStart.addEventListener('click', async () => {
-        const url = ytUrlInput.value.trim();
-        if (!url) {
-            js_log("Error", "Please paste a video URL first!");
-            return;
-        }
 
-        const quality = ytQualitySelect.value;
-        js_log("System", `Starting YouTube download for link: ${url}`);
-        
-        // UI visual adjustments: disable inputs, show progress
-        btnYtStart.disabled = true;
-        ytUrlInput.disabled = true;
-        ytQualitySelect.disabled = true;
-        
-        if (ytProgressContainer) {
-            ytProgressContainer.classList.remove('hidden');
-        }
-        if (ytVideoTitle) {
-            ytVideoTitle.textContent = "Connecting to video server...";
-        }
-        if (ytProgressBar) {
-            ytProgressBar.style.width = '0%';
-        }
-        
-        try {
-            const api = await getPythonApi();
-            const result = await api.start_yt_download(url, quality);
-            js_log("System", `YouTube download engine response: ${result}`);
-        } catch (e) {
-            js_log("Error", `Failed to call YT engine: ${e.message}`);
-            // Re-enable UI on absolute failure
-            btnYtStart.disabled = false;
-            ytUrlInput.disabled = false;
-            ytQualitySelect.disabled = false;
-        }
-    });
-}
-
-// YT Downloader Progress callback
-window.js_update_yt_progress = function(title, percent, speed, received_str, total_str, eta, state) {
-    if (ytVideoTitle && title) {
-        ytVideoTitle.textContent = title;
-    }
-    
-    if (ytProgressBar) {
-        ytProgressBar.style.width = `${percent}%`;
-    }
-    
-    if (ytSpeed) {
-        ytSpeed.textContent = speed;
-    }
-    
-    if (ytProgressText) {
-        ytProgressText.textContent = `${percent}% (${received_str} / ${total_str})`;
-    }
-    
-    if (ytEta) {
-        ytEta.textContent = eta ? `ETA: ${eta}` : 'ETA: Unknown';
-    }
-    
-    // Check if downloading is in a finished state (completed / failed)
-    const cleanState = state.toLowerCase();
-    if (cleanState === 'completed' || cleanState === 'failed' || cleanState === 'canceled') {
-        btnYtStart.disabled = false;
-        ytUrlInput.disabled = false;
-        ytQualitySelect.disabled = false;
-        
-        if (cleanState === 'completed') {
-            js_log("System", `YouTube video download completed successfully!`);
-            ytUrlInput.value = ''; // clear input
-        } else {
-            js_log("Error", `YouTube video download failed.`);
-        }
-    }
-};
 
 // Initial load configuration
 window.addEventListener('DOMContentLoaded', async () => {
@@ -910,3 +977,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         applyConsolePreference();
     }
 });
+
+// Stubs to absorb legacy python callbacks safely
+window.js_init_yt_playlist = () => {};
+window.js_update_yt_playlist_item = () => {};
+window.js_update_yt_progress = () => {};

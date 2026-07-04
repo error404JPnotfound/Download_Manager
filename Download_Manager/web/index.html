@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        if (!sessionStorage.getItem('app_refreshed')) {
+            sessionStorage.setItem('app_refreshed', 'true');
+            location.reload();
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OctoDownloader - Premium Download Manager</title>
@@ -11,6 +17,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Splash / Loading Screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <svg class="splash-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <div class="splash-title">OctoDownloader</div>
+            <div class="splash-loader">
+                <div class="splash-loader-bar"></div>
+            </div>
+            <div class="splash-status">Initializing engine...</div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Sidebar / Brand -->
         <aside class="sidebar">

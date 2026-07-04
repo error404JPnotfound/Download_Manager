@@ -1084,14 +1084,7 @@ def on_closing():
         except:
             pass
 
-def on_loaded(window):
-    # Run a javascript refresh/reload once on start to ensure latest UI updates render instantly
-    window.evaluate_js("""
-        if (!sessionStorage.getItem('reloaded')) {
-            sessionStorage.setItem('reloaded', 'true');
-            window.location.reload();
-        }
-    """)
+    return True
 
 if __name__ == '__main__':
     # Disable automatic DevTools popup in debug mode
@@ -1106,9 +1099,8 @@ if __name__ == '__main__':
         height=720,
         resizable=True
     )
-    # Bind native window hooks
+    # Bind native window closing hook
     window_instance.events.closing += on_closing
-    window_instance.events.loaded += on_loaded
     
     # Start webview loop
     webview.start(debug=True)

@@ -997,6 +997,26 @@ async function initializeApp() {
     // Hide queue panel initially
     hideQueuePanel();
 
+    const splashScreen = document.getElementById('splash-screen');
+    const splashStatus = splashScreen ? splashScreen.querySelector('.splash-status') : null;
+
+    // Status updates during loading
+    setTimeout(() => {
+        if (splashStatus) splashStatus.textContent = "Connecting to backend...";
+    }, 1500);
+
+    setTimeout(() => {
+        if (splashStatus) splashStatus.textContent = "Syncing configurations...";
+    }, 3500);
+
+    // Hide splash screen after 5 seconds
+    setTimeout(() => {
+        if (splashStatus) splashStatus.textContent = "Ready!";
+        if (splashScreen) {
+            splashScreen.classList.add('fade-out');
+        }
+    }, 5000);
+
     let api = null;
     try {
         api = await getPythonApi();

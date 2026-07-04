@@ -1,0 +1,22 @@
+#!/bin/bash
+# Launcher script for OctoDownloader
+VENV_DIR="$HOME/.local/share/octodownloader/venv"
+
+if [ ! -d "$VENV_DIR" ]; then
+    if command -v zenity >/dev/null 2>&1; then
+        (
+            echo "10" ; echo "# Initializing virtual environment..."
+            python3 -m venv --system-site-packages "$VENV_DIR" >/dev/null 2>&1
+            echo "40" ; echo "# Installing application packages (pywebview, nodriver, yt-dlp)..."
+            "$VENV_DIR/bin/pip" install pywebview nodriver yt-dlp >/dev/null 2>&1
+            echo "100" ; echo "# Setup complete! Launching OctoDownloader..."
+        ) | zenity --progress --title="OctoDownloader Setup" --text="Initializing application..." --percentage=0 --auto-close --width=450
+    else
+        echo "First-time setup: Initializing virtual environment for OctoDownloader..."
+        python3 -m venv --system-site-packages "$VENV_DIR"
+        echo "Installing required Python dependencies..."
+        "$VENV_DIR/bin/pip" install pywebview nodriver yt-dlp
+    fi
+fi
+
+exec "$VENV_DIR/bin/python3" /usr/share/octodownloader/app.py "$@"

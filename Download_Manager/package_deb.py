@@ -131,59 +131,125 @@ Description: OctoDownloader - Premium Download Manager
     control_path.write_text(control_content, encoding="utf-8")
     os.chmod(control_path, 0o644)
     
-    # Build the .deb file using dpkg-deb
-    print("Building debian package with dpkg-deb...")
+    # ------------------------------------------------------------------ #
+    # Build the .deb file using dpkg-deb (Linux) or fall back to a zip  #
+    # staging bundle that can be built on Kali / any Debian-based system #
+    # ------------------------------------------------------------------ #
+    import subprocess
+    import platform
+
     deb_filename = "octodownloader_1.0.0-1_all.deb"
     deb_out_path = base_dir.parent / deb_filename
-    
-    import subprocess
-    result = subprocess.run(
-        ["dpkg-deb", "--build", str(build_root), str(deb_out_path)],
-        capture_output=True,
-        text=True
-    )
-    if result.returncode != 0:
-        print(f"dpkg-deb error stdout: {result.stdout}")
-        print(f"dpkg-deb error stderr: {result.stderr}")
-        raise RuntimeError("dpkg-deb failed to build the package")
-        
-    print(f"Debian package built successfully: {deb_out_path}")
-    
-    # Create README_KALI.txt
+
+    # Create README_KALI.txt (always)
     readme_path = base_dir.parent / "README_KALI.txt"
     readme_content = """# OctoDownloader for Kali Linux / Debian
- 
-Thank you for choosing OctoDownloader! This directory contains the packaged version of the app for Kali Linux (and other Debian-based distributions like Ubuntu/Debian).
- 
+
+Thank you for choosing OctoDownloader! This directory contains the packaged version
+of the app for Kali Linux (and other Debian-based distributions like Ubuntu/Debian).
+
 ## Installation
- 
-To install the `.deb` package, run the following command in your terminal:
- 
+
+To install the .deb package, run the following command in your terminal:
+
     sudo dpkg -i octodownloader_1.0.0-1_all.deb
- 
+
 If there are missing dependencies (e.g. Chrome/Chromium or WebKit2 runtime), run:
- 
+
     sudo apt-get install -f
- 
+
 ## How to Run
- 
+
 Once installed, you can launch OctoDownloader in two ways:
  1. Search for "OctoDownloader" in your Desktop Application Menu.
  2. Run the command `octodownloader` directly from any terminal.
- 
+
 Enjoy downloading!
 """
     readme_path.write_text(readme_content, encoding="utf-8")
     print(f"README_KALI.txt created at: {readme_path}")
-    
-    # Zip the .deb and the README
+
+    # Try dpkg-deb (works natively on Linux / WSL)
+    dpkg_available = False
+    try:
+        probe = subprocess.run(
+            ["dpkg-deb", "--version"],
+            capture_output=True,
+            text=True
+        )
+        dpkg_available = (probe.returncode == 0)
+    except FileNotFoundError:
+        dpkg_available = False
+
     zip_path = base_dir.parent / "OctoDownloader_Kali_Linux.zip"
-    print(f"Creating ZIP archive at: {zip_path}")
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zipf.write(deb_out_path, arcname=deb_filename)
-        zipf.write(readme_path, arcname="README_KALI.txt")
-        
-    print(f"ZIP package created successfully at: {zip_path}")
+
+    if dpkg_available:
+        print("Building Debian package with dpkg-deb...")
+        result = subprocess.run(
+            ["dpkg-deb", "--build", "--root-owner-group", str(build_root), str(deb_out_path)],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode != 0:
+            print(f"dpkg-deb stdout: {result.stdout}")
+            print(f"dpkg-deb stderr: {result.stderr}")
+            raise RuntimeError("dpkg-deb failed to build the package")
+
+        print(f"Debian package built successfully: {deb_out_path}")
+
+        # Zip the finished .deb + README
+        print(f"Creating ZIP archive at: {zip_path}")
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            zipf.write(deb_out_path, arcname=deb_filename)
+            zipf.write(readme_path, arcname="README_KALI.txt")
+
+        print(f"ZIP package created successfully: {zip_path}")
+
+    else:
+        # ---- Windows / no dpkg-deb fallback ----
+        print()
+        print("=" * 60)
+        print("NOTE: dpkg-deb not found (you are likely on Windows).")
+        print("Creating a staging ZIP bundle instead.")
+        print("Transfer the ZIP to your Kali VM and run build_deb.sh")
+        print("=" * 60)
+        print()
+
+        # Write a helper shell script that builds the .deb on Linux
+        build_sh_path = base_dir.parent / "build_deb.sh"
+        build_sh_content = """#!/usr/bin/env bash
+# Run this script on Kali Linux / any Debian-based system to produce the .deb
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_ROOT="$SCRIPT_DIR/octodownloader_1.0.0-1_all"
+DEB_OUT="$SCRIPT_DIR/octodownloader_1.0.0-1_all.deb"
+
+echo "Building: $DEB_OUT"
+dpkg-deb --build --root-owner-group "$BUILD_ROOT" "$DEB_OUT"
+echo "Done! Install with: sudo dpkg -i octodownloader_1.0.0-1_all.deb"
+"""
+        build_sh_path.write_text(build_sh_content, encoding="utf-8")
+        print(f"build_deb.sh written at: {build_sh_path}")
+
+        # Bundle the staging directory + README + build_sh into the ZIP
+        print(f"Creating staging ZIP archive at: {zip_path}")
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # Walk the entire staging directory tree
+            for item in build_root.rglob("*"):
+                arcname = item.relative_to(base_dir.parent)
+                zipf.write(item, arcname=str(arcname))
+            # Add helpers at the root of the zip
+            zipf.write(readme_path, arcname="README_KALI.txt")
+            zipf.write(build_sh_path, arcname="build_deb.sh")
+
+        print()
+        print(f"Staging ZIP created: {zip_path}")
+        print()
+        print("Next steps:")
+        print("  1. Copy OctoDownloader_Kali_Linux.zip to your Kali VM")
+        print("  2. Run:  unzip OctoDownloader_Kali_Linux.zip")
+        print("  3. Run:  chmod +x build_deb.sh && ./build_deb.sh")
+        print("  4. Run:  sudo dpkg -i octodownloader_1.0.0-1_all.deb")
     
 if __name__ == "__main__":
     main()

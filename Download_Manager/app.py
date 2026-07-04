@@ -20,7 +20,23 @@ else:
 index_url = Path(os.path.join(web_dir, 'index.html')).resolve().as_uri()
 
 # Persistent Configuration Setup
-CONFIG_DIR = Path(os.environ.get("APPDATA", str(Path.home()))) / "OctoDownloader"
+def get_config_dir():
+    appdata = os.environ.get("APPDATA")
+    if not appdata:
+        for key, val in os.environ.items():
+            if key.upper() == "APPDATA":
+                appdata = val
+                break
+    if not appdata:
+        if sys.platform == "win32":
+            appdata = os.path.join(os.path.expanduser("~"), "AppData", "Roaming")
+        else:
+            appdata = os.environ.get("XDG_CONFIG_HOME")
+            if not appdata:
+                appdata = os.path.join(os.path.expanduser("~"), ".config")
+    return Path(appdata) / "OctoDownloader"
+
+CONFIG_DIR = get_config_dir()
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
@@ -922,6 +938,10 @@ class Api:
             }
         except Exception as e:
             return {"error": str(e)}
+
+    def log_js_error(self, message):
+        print(f"[JS ERROR] {message}", flush=True)
+        return True
 
     def get_config(self):
         return load_config()

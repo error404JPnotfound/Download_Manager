@@ -1,3 +1,11 @@
+window.onerror = function(message, source, lineno, colno, error) {
+    const errText = message + " at " + source + ":" + lineno + ":" + colno + (error ? "\n" + error.stack : "");
+    console.error(errText);
+    if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.log_js_error(errText);
+    }
+};
+
 const urlInputs = document.getElementById('url-inputs');
 // Drag‑and‑Drop support for URLs / text files
 urlInputs.addEventListener('dragover', e => {
@@ -69,7 +77,7 @@ const hexPrimary = document.getElementById('hex-primary');
 const hexSecondary = document.getElementById('hex-secondary');
 const hexAccent = document.getElementById('hex-accent');
 const hexBg = document.getElementById('hex-bg');
-const chkShowConsoleDownloads = document.getElementById('chk-show-console-downloads');
+
 const queuePanelSection = document.getElementById('queue-panel-section');
 const reorderListContainer = document.getElementById('reorder-list-container');
 const reorderList = document.getElementById('reorder-list');
@@ -130,22 +138,7 @@ function hideQueuePanel() {
     }
 }
 
-// Apply dashboard console preference
-function applyConsolePreference() {
-    const showConsole = appConfig.show_console_downloads !== false;
-    if (chkShowConsoleDownloads) {
-        chkShowConsoleDownloads.checked = showConsole;
-    }
-    
-    // Only show/hide console Section when we are active on the downloads dashboard tab!
-    if (navDownloads.classList.contains('active')) {
-        if (showConsole) {
-            consoleSection.classList.remove('hidden');
-        } else {
-            consoleSection.classList.add('hidden');
-        }
-    }
-}
+
 
 // Update the save location path label with parent drive disk metrics
 async function updateDownloadPathDisplay(api, path) {
@@ -177,6 +170,9 @@ function parseAndBuildQueue() {
             buildReorderList(lines);
         } else {
             reorderListContainer.classList.add('hidden');
+            if (reorderList) {
+                reorderList.innerHTML = '';
+            }
         }
     }
     
@@ -480,12 +476,7 @@ btnModalConfirm.addEventListener('click', async () => {
 
 btnClear.addEventListener('click', async () => {
     urlInputs.value = '';
-    queueItems = [];
-    
-    const activeItems = queueList.querySelectorAll('.download-item');
-    activeItems.forEach(el => el.remove());
-    
-    updateQueueState();
+    parseAndBuildQueue();
     
     // Hide queue panel and collapse grid back to full width input
     hideQueuePanel();
@@ -543,8 +534,8 @@ navDownloads.addEventListener('click', () => {
     historySection.classList.add('hidden');
     customizeSection.classList.add('hidden');
     
-    // Apply user preference for console visibility in downloads tab
-    applyConsolePreference();
+    // Ensure console is hidden in downloads dashboard tab
+    consoleSection.classList.add('hidden');
     consoleSection.classList.remove('full-height');
 });
 
@@ -827,37 +818,58 @@ function applyCustomColors() {
 
 // Set up event listeners for inputs
 if (pickPrimary) {
-    pickPrimary.addEventListener('input', async (e) => {
+    pickPrimary.addEventListener('input', (e) => {
         appConfig.custom_primary = e.target.value;
         applyCustomColors();
-        const api = await getPythonApi();
-        await api.save_config_value('custom_primary', e.target.value);
     });
 }
 if (pickSecondary) {
-    pickSecondary.addEventListener('input', async (e) => {
+    pickSecondary.addEventListener('input', (e) => {
         appConfig.custom_secondary = e.target.value;
         applyCustomColors();
-        const api = await getPythonApi();
-        await api.save_config_value('custom_secondary', e.target.value);
     });
 }
 if (pickAccent) {
-    pickAccent.addEventListener('input', async (e) => {
+    pickAccent.addEventListener('input', (e) => {
         appConfig.custom_accent = e.target.value;
         applyCustomColors();
-        const api = await getPythonApi();
-        await api.save_config_value('custom_accent', e.target.value);
     });
 }
 if (pickBg) {
-    pickBg.addEventListener('input', async (e) => {
+    pickBg.addEventListener('input', (e) => {
         appConfig.custom_bg = e.target.value;
         applyCustomColors();
-        const api = await getPythonApi();
-        await api.save_config_value('custom_bg', e.target.value);
     });
 }
+
+const btnSaveTheme = document.getElementById('btn-save-theme');
+if (btnSaveTheme) {
+    btnSaveTheme.addEventListener('click', async () => {
+        try {
+            const api = await getPythonApi();
+            await api.save_config_value('custom_primary', appConfig.custom_primary || null);
+            await api.save_config_value('custom_secondary', appConfig.custom_secondary || null);
+            await api.save_config_value('custom_accent', appConfig.custom_accent || null);
+            await api.save_config_value('custom_bg', appConfig.custom_bg || null);
+            
+            js_log("System", "Theme changes saved successfully to configuration.");
+            
+            const originalText = btnSaveTheme.textContent;
+            btnSaveTheme.textContent = "Saved!";
+            btnSaveTheme.style.background = "var(--secondary)";
+            btnSaveTheme.style.color = "#000";
+            setTimeout(() => {
+                btnSaveTheme.textContent = originalText;
+                btnSaveTheme.style.background = "";
+                btnSaveTheme.style.color = "";
+            }, 1500);
+        } catch (e) {
+            console.error("Failed to save custom colors:", e);
+            js_log("Error", "Failed to save theme changes.");
+        }
+    });
+}
+
 if (btnResetTheme) {
     btnResetTheme.addEventListener('click', async () => {
         delete appConfig.custom_primary;
@@ -924,59 +936,58 @@ window.js_update_download_progress = function(url, state, percent, speed, receiv
 
 
 // Initial load configuration
-window.addEventListener('DOMContentLoaded', async () => {
+async function initializeApp() {
     // Hide queue panel initially
     hideQueuePanel();
 
+    let api = null;
     try {
-        const api = await getPythonApi();
-        
-        // Fetch config from python side
-        appConfig = (await api.get_config()) || {};
-
-        // Apply custom theme colors from config
-        applyCustomColors();
-
-        // Theme toggle initialization based on config
-        const savedTheme = appConfig.theme || 'dark';
-        if (savedTheme === 'light') {
-            document.body.classList.add('light-theme');
-        } else {
-            document.body.classList.remove('light-theme');
-        }
-        
-        const themeToggleBtn = document.getElementById('theme-toggle');
-        if (themeToggleBtn) {
-            themeToggleBtn.addEventListener('click', async () => {
-                document.body.classList.toggle('light-theme');
-                const theme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
-                appConfig.theme = theme;
-                await api.save_config_value('theme', theme);
-                js_log("System", `Theme changed to ${theme.toUpperCase()} mode.`);
-            });
-        }
-
-        // Apply dashboard console preference
-        applyConsolePreference();
-
-        // Add change event listener for the console checkbox
-        if (chkShowConsoleDownloads) {
-            chkShowConsoleDownloads.addEventListener('change', async (e) => {
-                appConfig.show_console_downloads = e.target.checked;
-                applyConsolePreference();
-                await api.save_config_value('show_console_downloads', e.target.checked);
-            });
-        }
-
-        const currentPath = await api.get_download_directory();
-        await updateDownloadPathDisplay(api, currentPath);
+        api = await getPythonApi();
     } catch (e) {
-        console.error("Initialization error:", e);
-        // Fail-safe defaults
-        applyCustomColors();
-        applyConsolePreference();
+        console.error("Failed to acquire Python API:", e);
     }
-});
+
+    if (api) {
+        // 1. Fetch Configuration
+        try {
+            appConfig = (await api.get_config()) || {};
+        } catch (e) {
+            console.error("Failed to load appConfig:", e);
+        }
+
+        // 2. Theme colors initialization based on config
+        try {
+            applyCustomColors();
+        } catch (e) {
+            console.error("Failed to initialize theme colors:", e);
+        }
+
+        // 4. Ensure console section is hidden by default
+        try {
+            consoleSection.classList.add('hidden');
+        } catch (e) {
+            console.error("Failed to hide console:", e);
+        }
+
+        // 5. Load and display Download Directory path
+        try {
+            const currentPath = await api.get_download_directory();
+            await updateDownloadPathDisplay(api, currentPath);
+        } catch (e) {
+            console.error("Failed to display download directory path:", e);
+        }
+    } else {
+        // Fallback default setup
+        applyCustomColors();
+        consoleSection.classList.add('hidden');
+    }
+}
+
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
+}
 
 // Stubs to absorb legacy python callbacks safely
 window.js_init_yt_playlist = () => {};

@@ -204,7 +204,7 @@ body {
     display: grid;
     grid-template-columns: 1fr 1.2fr;
     gap: 20px;
-    height: calc(100vh - 410px);
+    height: calc(100vh - 130px);
     margin-bottom: 20px;
     transition: grid-template-columns 0.75s cubic-bezier(0.25, 0.8, 0.25, 1), gap 0.75s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
@@ -212,6 +212,10 @@ body {
 .content-grid.single-col {
     grid-template-columns: 1fr 0fr;
     gap: 0px;
+}
+
+#history-section, #customize-section {
+    height: calc(100vh - 130px);
 }
 
 /* Panels */
@@ -261,6 +265,14 @@ body {
 }
 
 /* Links Input Section */
+.link-input-panel label {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
 .link-input-panel textarea {
     width: 100%;
     flex-grow: 1;
@@ -268,9 +280,10 @@ body {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 14px;
-    font-family: Consolas, Monaco, monospace;
-    font-size: 0.85rem;
-    color: var(--text-main);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--primary);
     resize: none;
     outline: none;
     transition: border-color var(--transition-speed) ease;
@@ -943,7 +956,9 @@ body.light-theme .modal-card {
 /* History Table Styling */
 .table-container {
     overflow-x: auto;
+    overflow-y: auto;
     width: 100%;
+    flex-grow: 1;
 }
 
 .history-table {
@@ -1519,4 +1534,16 @@ body.light-theme .reorder-item.dragging {
 @keyframes fadeSlideIn {
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Smooth theme-switching transitions */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+    transition: background-color 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) !important,
+                background 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) !important,
+                color 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) !important,
+                border-color 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) !important,
+                box-shadow 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
 }

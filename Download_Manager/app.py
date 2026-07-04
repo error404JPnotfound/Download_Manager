@@ -322,6 +322,7 @@ async def download_worker(urls, headless):
         # In headless mode, spoof user agent to prevent anti-bot detection
         if headless:
             args.append("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+            args.append("--window-position=-10000,-10000")
 
         # Start browser using nodriver
         browser = await uc.start(headless=headless, browser_args=args)
@@ -465,12 +466,16 @@ async def download_worker(urls, headless):
                 
                 try:
                     import yt_dlp
-                    # Run extraction first to resolve final video title for history/UI
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    # Run extraction with flat extraction first for speed
+                    ydl_opts_extract = ydl_opts.copy()
+                    ydl_opts_extract['extract_flat'] = True
+                    with yt_dlp.YoutubeDL(ydl_opts_extract) as ydl:
                         info = ydl.extract_info(url_clean, download=False)
                         resolved_title = info.get('title', 'YouTube Video')
-                        run_js("js_update_active_url", url_clean, "Downloading...", resolved_title)
-                        
+                    
+                    run_js("js_update_active_url", url_clean, "Downloading...", resolved_title)
+                    
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         ydl.download([url_clean])
                         
                     run_js("js_update_download_progress", url_clean, "completed", 100, 0, 100, 100)
@@ -922,6 +927,14 @@ class Api:
         except Exception as e:
             return str(e)
 
+    def open_external_url(self, url):
+        try:
+            import webbrowser
+            webbrowser.open(url)
+            return True
+        except Exception as e:
+            return str(e)
+
     def get_download_directory(self):
         global DOWNLOAD_DIR
         return str(DOWNLOAD_DIR)
@@ -1071,7 +1084,14 @@ def on_closing():
         except:
             pass
 
-    return True
+def on_loaded(window):
+    # Run a javascript refresh/reload once on start to ensure latest UI updates render instantly
+    window.evaluate_js("""
+        if (!sessionStorage.getItem('reloaded')) {
+            sessionStorage.setItem('reloaded', 'true');
+            window.location.reload();
+        }
+    """)
 
 if __name__ == '__main__':
     # Disable automatic DevTools popup in debug mode
@@ -1086,8 +1106,9 @@ if __name__ == '__main__':
         height=720,
         resizable=True
     )
-    # Bind native window closing hook
+    # Bind native window hooks
     window_instance.events.closing += on_closing
+    window_instance.events.loaded += on_loaded
     
     # Start webview loop
     webview.start(debug=True)

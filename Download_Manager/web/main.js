@@ -69,6 +69,8 @@ const btnClearHistory = document.getElementById('btn-clear-history');
 const navCustomize = document.getElementById('nav-customize');
 const customizeSection = document.getElementById('customize-section');
 const btnResetTheme = document.getElementById('btn-reset-theme');
+const navAbout = document.getElementById('nav-about');
+const aboutSection = document.getElementById('about-section');
 const pickPrimary = document.getElementById('pick-primary');
 const pickSecondary = document.getElementById('pick-secondary');
 const pickAccent = document.getElementById('pick-accent');
@@ -524,6 +526,7 @@ navDownloads.addEventListener('click', () => {
     navConsole.classList.remove('active');
     navHistory.classList.remove('active');
     navCustomize.classList.remove('active');
+    navAbout.classList.remove('active');
     
     // Switch active containers with entry transitions
     contentGrid.classList.remove('hidden');
@@ -533,6 +536,7 @@ navDownloads.addEventListener('click', () => {
     
     historySection.classList.add('hidden');
     customizeSection.classList.add('hidden');
+    aboutSection.classList.add('hidden');
     
     // Ensure console is hidden in downloads dashboard tab
     consoleSection.classList.add('hidden');
@@ -544,10 +548,12 @@ navConsole.addEventListener('click', () => {
     navDownloads.classList.remove('active');
     navHistory.classList.remove('active');
     navCustomize.classList.remove('active');
+    navAbout.classList.remove('active');
     
     contentGrid.classList.add('hidden');
     historySection.classList.add('hidden');
     customizeSection.classList.add('hidden');
+    aboutSection.classList.add('hidden');
     consoleSection.classList.remove('hidden');
     
     consoleSection.classList.remove('full-height');
@@ -562,10 +568,12 @@ navHistory.addEventListener('click', () => {
     navDownloads.classList.remove('active');
     navConsole.classList.remove('active');
     navCustomize.classList.remove('active');
+    navAbout.classList.remove('active');
     
     contentGrid.classList.add('hidden');
     consoleSection.classList.add('hidden');
     customizeSection.classList.add('hidden');
+    aboutSection.classList.add('hidden');
     
     historySection.classList.remove('hidden');
     historySection.classList.remove('fade-in');
@@ -580,15 +588,35 @@ navCustomize.addEventListener('click', () => {
     navDownloads.classList.remove('active');
     navConsole.classList.remove('active');
     navHistory.classList.remove('active');
+    navAbout.classList.remove('active');
     
     contentGrid.classList.add('hidden');
     consoleSection.classList.add('hidden');
     historySection.classList.add('hidden');
+    aboutSection.classList.add('hidden');
     
     customizeSection.classList.remove('hidden');
     customizeSection.classList.remove('fade-in');
     void customizeSection.offsetWidth; // Trigger reflow
     customizeSection.classList.add('fade-in');
+});
+
+navAbout.addEventListener('click', () => {
+    navAbout.classList.add('active');
+    navDownloads.classList.remove('active');
+    navConsole.classList.remove('active');
+    navHistory.classList.remove('active');
+    navCustomize.classList.remove('active');
+    
+    contentGrid.classList.add('hidden');
+    consoleSection.classList.add('hidden');
+    historySection.classList.add('hidden');
+    customizeSection.classList.add('hidden');
+    
+    aboutSection.classList.remove('hidden');
+    aboutSection.classList.remove('fade-in');
+    void aboutSection.offsetWidth; // Trigger reflow
+    aboutSection.classList.add('fade-in');
 });
 
 btnClearHistory.addEventListener('click', async () => {
@@ -933,6 +961,35 @@ window.js_update_download_progress = function(url, state, percent, speed, receiv
     }
 };
 
+
+
+// About Section Links & Buttons External Browser Redirection
+const linkLinkedin = document.getElementById('link-linkedin');
+const btnGithub = document.getElementById('btn-github');
+
+if (linkLinkedin) {
+    linkLinkedin.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+            const api = await getPythonApi();
+            await api.open_external_url('https://www.linkedin.com/in/jeelpandya03');
+        } catch (err) {
+            console.error("Failed to open LinkedIn:", err);
+        }
+    });
+}
+
+if (btnGithub) {
+    btnGithub.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+            const api = await getPythonApi();
+            await api.open_external_url('https://github.com/error404JPnotfound');
+        } catch (err) {
+            console.error("Failed to open GitHub:", err);
+        }
+    });
+}
 
 
 // Initial load configuration

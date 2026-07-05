@@ -19,9 +19,6 @@ Thumbs.db
 
 # Large binaries and output
 *.exe
-*.deb
-*.zip
 *.tmp
-Download_Manager/Sharing/
 Download_Manager/test_downloads/
 Download_Manager/ffmpeg*/

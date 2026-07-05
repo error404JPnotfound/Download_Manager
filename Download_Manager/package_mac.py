@@ -59,7 +59,7 @@ source venv/bin/activate
 
 echo "Installing requirements..."
 pip install --upgrade pip wheel setuptools
-pip install pywebview yt-dlp pyinstaller Pillow
+pip install pywebview yt-dlp pyinstaller Pillow nodriver
 
 echo "Building Rocket DL.app..."
 pyinstaller --windowed --icon=RocketDL.ico --name="Rocket DL" --add-data="web:web" --clean app.py

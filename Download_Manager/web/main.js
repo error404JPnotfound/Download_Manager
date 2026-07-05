@@ -2482,6 +2482,17 @@ async function initializeApp() {
         } catch (e) {
             console.error("Failed to display download directory path:", e);
         }
+
+        // 6. Wait for splash to finish, then show tutorial if needed
+        setTimeout(async () => {
+            try {
+                if (window.showTutorialIfNeeded) {
+                    await window.showTutorialIfNeeded(api, appConfig);
+                }
+            } catch (err) {
+                console.error("Error launching tutorial:", err);
+            }
+        }, 5400);
     } else {
         // Fallback default setup
         applyLanguage('en');
@@ -2511,7 +2522,7 @@ window.js_update_yt_playlist_item = () => {};
 window.js_update_yt_progress = () => {};
 
 // ===== Welcome Tutorial (first launch only) =====
-(function initTutorial() {
+window.showTutorialIfNeeded = async function(api, appConfig) {
     const STORAGE_KEY = 'rocketdl_tutorial_done';
     const overlay     = document.getElementById('tutorial-overlay');
     const slides      = Array.from(document.querySelectorAll('.tut-slide'));
@@ -2522,8 +2533,10 @@ window.js_update_yt_progress = () => {};
 
     if (!overlay || !slides.length) return;
 
-    // Show only on first launch
-    if (localStorage.getItem(STORAGE_KEY)) return;
+    // Show only on first launch (checks both localStorage & Python config)
+    if (localStorage.getItem(STORAGE_KEY) || (appConfig && appConfig.tutorial_done)) {
+        return;
+    }
 
     let current = 0;
     const total = slides.length; // 5 slides (0-4)
@@ -2539,17 +2552,22 @@ window.js_update_yt_progress = () => {};
         btnNext.textContent = current === total - 1 ? 'Got it 🚀' : 'Next →';
     }
 
-    function closeTutorial() {
+    async function closeTutorial() {
         localStorage.setItem(STORAGE_KEY, '1');
+        if (api) {
+            try {
+                await api.save_config_value('tutorial_done', true);
+            } catch (e) {
+                console.error("Failed to save tutorial config:", e);
+            }
+        }
         overlay.style.animation = 'tutFadeIn 0.25s ease reverse forwards';
         setTimeout(() => overlay.classList.add('hidden'), 260);
     }
 
-    // Wait for splash to finish, then show tutorial
-    setTimeout(() => {
-        overlay.classList.remove('hidden');
-        goTo(0);
-    }, 5400); // just after splash disappears
+    // Show tutorial overlay
+    overlay.classList.remove('hidden');
+    goTo(0);
 
     btnNext.addEventListener('click', () => {
         if (current === total - 1) { closeTutorial(); return; }
@@ -2561,4 +2579,4 @@ window.js_update_yt_progress = () => {};
 
     // Click on dots to jump
     dots.forEach((dot, i) => dot.addEventListener('click', () => goTo(i)));
-})();
+};

@@ -1102,6 +1102,39 @@ if __name__ == '__main__':
     # Disable automatic DevTools popup in debug mode
     webview.settings['OPEN_DEVTOOLS_IN_DEBUG'] = False
 
+    # Create desktop shortcut on first launch
+    try:
+        cfg = load_config()
+        if not cfg.get("shortcut_created", False):
+            if sys.platform == 'win32':
+                import subprocess
+                if getattr(sys, 'frozen', False):
+                    exe_path = Path(sys.executable).resolve()
+                else:
+                    exe_path = Path(sys.argv[0]).resolve()
+                
+                desktop = Path(os.environ["USERPROFILE"]) / "Desktop"
+                shortcut_path = desktop / "Rocket DL.lnk"
+                
+                icon_path = Path(os.path.dirname(exe_path)) / "RocketDL.ico"
+                if not icon_path.exists():
+                    icon_path = exe_path
+                    
+                ps_script = f"""
+                $WshShell = New-Object -ComObject WScript.Shell
+                $Shortcut = $WshShell.CreateShortcut('{shortcut_path}')
+                $Shortcut.TargetPath = '{exe_path}'
+                $Shortcut.WorkingDirectory = '{exe_path.parent}'
+                $Shortcut.IconLocation = '{icon_path}'
+                $Shortcut.Save()
+                """
+                subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, check=True)
+                print("Desktop shortcut created successfully!", flush=True)
+            cfg["shortcut_created"] = True
+            save_config(cfg)
+    except Exception as e:
+        print(f"Failed to create desktop shortcut: {e}", flush=True)
+
     # Initialize and start native PyWebView window
     window_instance = webview.create_window(
         title="Rocket DL",

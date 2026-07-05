@@ -2454,44 +2454,39 @@ async function initializeApp() {
     // Status updates during loading
     if (splashStatus) splashStatus.textContent = "starting engine...";
 
-    setTimeout(() => {
-        if (splashStatus) splashStatus.textContent = "starting engine... lift off in 3";
-    }, 1500);
-
-    setTimeout(() => {
-        if (splashStatus) splashStatus.textContent = "starting engine... lift off in 3... 2";
-    }, 2500);
-
-    setTimeout(() => {
-        if (splashStatus) splashStatus.textContent = "starting engine... lift off in 3... 2... 1";
-    }, 3500);
-
-    setTimeout(() => {
-        if (splashStatus) splashStatus.textContent = "Lift off!";
-    }, 4500);
-
-    // Hide splash screen after 5 seconds
-    setTimeout(() => {
-        if (splashScreen) {
-            splashScreen.classList.add('fade-out');
-        }
-        const appContainer = document.querySelector('.app-container');
-        if (appContainer) {
-            appContainer.classList.add('revealed');
-        }
-        
-        try {
-            triggerMusicOnStartup();
-        } catch (e) {
-            console.error("Failed to trigger background music:", e);
-        }
-    }, 5000);
-
     let api = null;
     try {
         api = await getPythonApi();
     } catch (e) {
         console.error("Failed to acquire Python API:", e);
+    }
+
+    if (api) {
+        try {
+            await api.check_requirements();
+        } catch(e) {
+            console.error("Failed requirement check", e);
+        }
+    }
+
+    if (splashStatus) splashStatus.textContent = "Lift off!";
+    
+    // Give it a brief moment to show "Lift off!" before hiding
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Hide splash screen
+    if (splashScreen) {
+        splashScreen.classList.add('fade-out');
+    }
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+        appContainer.classList.add('revealed');
+    }
+    
+    try {
+        triggerMusicOnStartup();
+    } catch (e) {
+        console.error("Failed to trigger background music:", e);
     }
 
     if (api) {
@@ -2569,6 +2564,14 @@ if (document.readyState === 'loading') {
 window.js_init_yt_playlist = () => {};
 window.js_update_yt_playlist_item = () => {};
 window.js_update_yt_progress = () => {};
+
+window.js_update_splash_status = function(status_text) {
+    const splashScreen = document.getElementById('splash-screen');
+    const splashStatus = splashScreen ? splashScreen.querySelector('.splash-status') : null;
+    if (splashStatus) {
+        splashStatus.textContent = status_text;
+    }
+};
 
 // ===== Welcome Tutorial (first launch only) =====
 window.showTutorialIfNeeded = async function(api, appConfig) {

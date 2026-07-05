@@ -509,7 +509,7 @@ async def download_worker(urls, headless):
                         'match_filter': ytdlp_match_filter,
                         'quiet': True,
                         'no_warnings': True,
-                        'ffmpeg_location': base_dir,
+                        'ffmpeg_location': str(CONFIG_DIR),
                     }
                     
                     # Set format based on quality_preference
@@ -878,6 +878,7 @@ def yt_dlp_worker(url, download_dir, quality_choice):
             'quiet': True,
             'no_warnings': True,
             'ignoreerrors': True, # ignore errors to prevent breaking playlists
+            'ffmpeg_location': str(CONFIG_DIR),
         }
         
         # 1: Best Quality, 2: 1080p60, 3: 1080p30, 4: 720p60, 5: 720p30, 6: Audio MP3
@@ -964,6 +965,52 @@ def yt_dlp_worker(url, download_dir, quality_choice):
 
 # Exposed functions for Javascript calling inside PyWebView
 class Api:
+    def check_requirements(self):
+        import zipfile
+        import shutil
+        
+        ffmpeg_exe = CONFIG_DIR / "ffmpeg.exe"
+        ffprobe_exe = CONFIG_DIR / "ffprobe.exe"
+        
+        if ffmpeg_exe.exists() and ffprobe_exe.exists():
+            return {"status": "ok"}
+            
+        run_js("js_update_splash_status", "Downloading required video engines (0%)...")
+        
+        try:
+            zip_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+            zip_path = CONFIG_DIR / "ffmpeg.zip"
+            
+            last_percent = -1
+            def reporthook(count, block_size, total_size):
+                nonlocal last_percent
+                if total_size > 0:
+                    percent = int((count * block_size * 100) / total_size)
+                    if percent > 100: percent = 100
+                    if percent > last_percent:
+                        run_js("js_update_splash_status", f"Downloading required video engines ({percent}%)...")
+                        last_percent = percent
+                        
+            urllib.request.urlretrieve(zip_url, zip_path, reporthook)
+            
+            run_js("js_update_splash_status", "Extracting engines... Please wait.")
+            
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                for file_info in zip_ref.infolist():
+                    if file_info.filename.endswith('ffmpeg.exe'):
+                        file_info.filename = 'ffmpeg.exe'
+                        zip_ref.extract(file_info, path=CONFIG_DIR)
+                    elif file_info.filename.endswith('ffprobe.exe'):
+                        file_info.filename = 'ffprobe.exe'
+                        zip_ref.extract(file_info, path=CONFIG_DIR)
+                        
+            # Clean up
+            zip_path.unlink(missing_ok=True)
+            return {"status": "ok"}
+            
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
     def start_downloads(self, urls, headless):
         global download_thread, is_downloading
         if is_downloading:

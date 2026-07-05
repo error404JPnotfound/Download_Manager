@@ -967,11 +967,19 @@ def yt_dlp_worker(url, download_dir, quality_choice):
 class Api:
     def check_requirements(self):
         import zipfile
+        import tarfile
         import shutil
         import threading
+        import stat
         
-        ffmpeg_exe = CONFIG_DIR / "ffmpeg.exe"
-        ffprobe_exe = CONFIG_DIR / "ffprobe.exe"
+        is_win = sys.platform == "win32"
+        is_mac = sys.platform == "darwin"
+        
+        ffmpeg_name = "ffmpeg.exe" if is_win else "ffmpeg"
+        ffprobe_name = "ffprobe.exe" if is_win else "ffprobe"
+        
+        ffmpeg_exe = CONFIG_DIR / ffmpeg_name
+        ffprobe_exe = CONFIG_DIR / ffprobe_name
         
         if ffmpeg_exe.exists() and ffprobe_exe.exists():
             return {"status": "ok"}
@@ -979,9 +987,6 @@ class Api:
         def downloader_thread():
             run_js("js_update_splash_status", "Downloading required video engines (0%)...")
             try:
-                zip_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-                zip_path = CONFIG_DIR / "ffmpeg.zip"
-                
                 last_percent = -1
                 def reporthook(count, block_size, total_size):
                     nonlocal last_percent
@@ -992,21 +997,68 @@ class Api:
                             run_js("js_update_splash_status", f"Downloading required video engines ({percent}%)...")
                             last_percent = percent
                             
-                urllib.request.urlretrieve(zip_url, zip_path, reporthook)
-                
-                run_js("js_update_splash_status", "Extracting engines... Please wait.")
-                
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    for file_info in zip_ref.infolist():
-                        if file_info.filename.endswith('ffmpeg.exe'):
-                            file_info.filename = 'ffmpeg.exe'
-                            zip_ref.extract(file_info, path=CONFIG_DIR)
-                        elif file_info.filename.endswith('ffprobe.exe'):
-                            file_info.filename = 'ffprobe.exe'
-                            zip_ref.extract(file_info, path=CONFIG_DIR)
-                            
-                # Clean up
-                zip_path.unlink(missing_ok=True)
+                if is_win:
+                    zip_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+                    zip_path = CONFIG_DIR / "ffmpeg.zip"
+                    urllib.request.urlretrieve(zip_url, zip_path, reporthook)
+                    
+                    run_js("js_update_splash_status", "Extracting engines... Please wait.")
+                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                        for file_info in zip_ref.infolist():
+                            if file_info.filename.endswith('ffmpeg.exe'):
+                                file_info.filename = 'ffmpeg.exe'
+                                zip_ref.extract(file_info, path=CONFIG_DIR)
+                            elif file_info.filename.endswith('ffprobe.exe'):
+                                file_info.filename = 'ffprobe.exe'
+                                zip_ref.extract(file_info, path=CONFIG_DIR)
+                    zip_path.unlink(missing_ok=True)
+                    
+                elif is_mac:
+                    zip_url = "https://evermeet.cx/ffmpeg/getrelease/zip"
+                    zip_path = CONFIG_DIR / "ffmpeg.zip"
+                    urllib.request.urlretrieve(zip_url, zip_path, reporthook)
+                    
+                    probe_url = "https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip"
+                    probe_path = CONFIG_DIR / "ffprobe.zip"
+                    urllib.request.urlretrieve(probe_url, probe_path, reporthook)
+                    
+                    run_js("js_update_splash_status", "Extracting engines... Please wait.")
+                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                        for file_info in zip_ref.infolist():
+                            if file_info.filename.endswith('ffmpeg'):
+                                file_info.filename = 'ffmpeg'
+                                zip_ref.extract(file_info, path=CONFIG_DIR)
+                    with zipfile.ZipFile(probe_path, 'r') as zip_ref:
+                        for file_info in zip_ref.infolist():
+                            if file_info.filename.endswith('ffprobe'):
+                                file_info.filename = 'ffprobe'
+                                zip_ref.extract(file_info, path=CONFIG_DIR)
+                    zip_path.unlink(missing_ok=True)
+                    probe_path.unlink(missing_ok=True)
+                    
+                    ffmpeg_exe.chmod(ffmpeg_exe.stat().st_mode | stat.S_IEXEC)
+                    ffprobe_exe.chmod(ffprobe_exe.stat().st_mode | stat.S_IEXEC)
+                    
+                else:
+                    # Linux
+                    tar_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
+                    tar_path = CONFIG_DIR / "ffmpeg.tar.xz"
+                    urllib.request.urlretrieve(tar_url, tar_path, reporthook)
+                    
+                    run_js("js_update_splash_status", "Extracting engines... Please wait.")
+                    with tarfile.open(tar_path, "r:xz") as tar:
+                        for member in tar.getmembers():
+                            if member.name.endswith('/ffmpeg'):
+                                member.name = 'ffmpeg'
+                                tar.extract(member, path=CONFIG_DIR)
+                            elif member.name.endswith('/ffprobe'):
+                                member.name = 'ffprobe'
+                                tar.extract(member, path=CONFIG_DIR)
+                    tar_path.unlink(missing_ok=True)
+                    
+                    ffmpeg_exe.chmod(ffmpeg_exe.stat().st_mode | stat.S_IEXEC)
+                    ffprobe_exe.chmod(ffprobe_exe.stat().st_mode | stat.S_IEXEC)
+                    
                 run_js("js_on_requirements_done")
             except Exception as e:
                 run_js("js_log", "Error", f"Failed to download ffmpeg: {e}")

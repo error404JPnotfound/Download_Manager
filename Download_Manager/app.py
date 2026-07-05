@@ -185,18 +185,25 @@ def is_direct_link(url):
             '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico',
             '.iso', '.bin'
         )
-        if any(path.endswith(ext) for ext in direct_extensions):
-            return True
-            
-        # 2. Quick HEAD request
-        req = urllib.request.Request(
-            url,
-            method='HEAD',
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
-        )
-        with urllib.request.urlopen(req, timeout=4) as resp:
-            content_type = resp.headers.get('Content-Type', '').lower()
-            if content_type and 'text/html' not in content_type:
+        has_direct_ext = any(path.endswith(ext) for ext in direct_extensions)
+        
+        # 2. Check Content-Type via HEAD request to prevent downloading HTML pages
+        try:
+            req = urllib.request.Request(
+                url,
+                method='HEAD',
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+            )
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                content_type = resp.headers.get('Content-Type', '').lower()
+                if content_type:
+                    if 'text/html' in content_type:
+                        return False
+                    return True
+        except Exception:
+            # If the HEAD request fails (e.g. 405 Method Not Allowed or 403 Forbidden), 
+            # fall back to the quick extension check.
+            if has_direct_ext:
                 return True
     except Exception:
         pass
@@ -217,6 +224,11 @@ async def download_direct_file(url, download_dir, progress_callback, log_callbac
         def blocking_download():
             global is_downloading
             with urllib.request.urlopen(req, timeout=20) as response:
+                # Prevent downloading HTML pages (e.g. redirected login or error pages)
+                content_type = response.headers.get('Content-Type', '').lower()
+                if 'text/html' in content_type:
+                    raise ValueError("Target URL returned an HTML webpage instead of a binary file.")
+                
                 filename = "downloaded_file"
                 content_disposition = response.headers.get('Content-Disposition', '')
                 if 'filename=' in content_disposition:

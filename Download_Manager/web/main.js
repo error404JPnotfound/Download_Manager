@@ -43,6 +43,7 @@ const btnPauseText = document.getElementById('btn-pause-text');
 const btnStop = document.getElementById('btn-stop');
 const btnClear = document.getElementById('btn-clear');
 const btnProceed = document.getElementById('btn-proceed');
+const btnBack = document.getElementById('btn-back');
 const btnClearInput = document.getElementById('btn-clear-input');
 const initialActions = document.getElementById('initial-actions');
 const processActions = document.getElementById('process-actions');
@@ -78,6 +79,8 @@ const customizeSection = document.getElementById('customize-section');
 const btnResetTheme = document.getElementById('btn-reset-theme');
 const navAbout = document.getElementById('nav-about');
 const aboutSection = document.getElementById('about-section');
+const navThanks = document.getElementById('nav-thanks');
+const thanksSection = document.getElementById('thanks-section');
 const pickPrimary = document.getElementById('pick-primary');
 const pickSecondary = document.getElementById('pick-secondary');
 const pickAccent = document.getElementById('pick-accent');
@@ -142,10 +145,10 @@ const translations = {
         btn_clear: "Clear",
         btn_add_more: "Add More Links",
         drag_to_reorder: "Drag to reorder download sequence",
-        btn_start_process: "Start Process",
+        btn_start_process: "Lift off",
         btn_pause_queue: "Pause Queue",
         btn_resume_queue: "Resume Queue",
-        btn_stop_all: "Stop All Downloads",
+        btn_stop_all: "Abort",
         btn_clear_queue: "Clear Queue",
         download_queue: "Download Queue",
         queue_empty_desc: "Queue is empty. Paste links and start downloading!",
@@ -208,7 +211,9 @@ const translations = {
         btn_play: "Play",
         btn_pause: "Pause",
         lbl_volume: "Volume",
-        chk_disable_startup: "Play music on startup"
+        chk_disable_startup: "Play music on startup",
+        nav_thanks: "Special Thanks",
+        connect_me_on: "connect me on:"
     },
     es: {
         splash_status: "Inicializando motor...",
@@ -296,7 +301,9 @@ const translations = {
         btn_play: "Reproducir",
         btn_pause: "Pausa",
         lbl_volume: "Volumen",
-        chk_disable_startup: "Reproducir música al iniciar"
+        chk_disable_startup: "Reproducir música al iniciar",
+        nav_thanks: "Agradecimientos especiales",
+        connect_me_on: "conéctame en:"
     },
     fr: {
         splash_status: "Initialisation du moteur...",
@@ -384,7 +391,9 @@ const translations = {
         btn_play: "Lire",
         btn_pause: "Pause",
         lbl_volume: "Volume",
-        chk_disable_startup: "Jouer la musique au démarrage"
+        chk_disable_startup: "Jouer la musique au démarrage",
+        nav_thanks: "Remerciements spéciaux",
+        connect_me_on: "me contacter sur:"
     },
     de: {
         splash_status: "Engine wird initialisiert...",
@@ -406,7 +415,7 @@ const translations = {
         btn_clear: "Löschen",
         btn_add_more: "Mehr Links hinzufügen",
         drag_to_reorder: "Ziehen, um die Downloadreihenfolge zu ändern",
-        btn_start_process: "Prozess starten",
+        btn_start_process: "Abheben",
         btn_pause_queue: "Warteschlange pausieren",
         btn_resume_queue: "Warteschlange fortsetzen",
         btn_stop_all: "Alle Downloads stoppen",
@@ -472,7 +481,9 @@ const translations = {
         btn_play: "Abspielen",
         btn_pause: "Pause",
         lbl_volume: "Lautstärke",
-        chk_disable_startup: "Musik beim Starten abspielen"
+        chk_disable_startup: "Musik beim Starten abspielen",
+        nav_thanks: "Besonderer Dank",
+        connect_me_on: "verbinde dich mit mir auf:"
     },
     pt: {
         splash_status: "Inicializando motor...",
@@ -560,7 +571,9 @@ const translations = {
         btn_play: "Reproduzir",
         btn_pause: "Pausar",
         lbl_volume: "Volume",
-        chk_disable_startup: "Tocar música ao iniciar"
+        chk_disable_startup: "Tocar música ao iniciar",
+        nav_thanks: "Agradecimentos especiais",
+        connect_me_on: "conecte-se comigo em:"
     },
     ru: {
         splash_status: "Инициализация движка...",
@@ -648,7 +661,9 @@ const translations = {
         btn_play: "Играть",
         btn_pause: "Пауза",
         lbl_volume: "Громкость",
-        chk_disable_startup: "Воспроизводить музыку при запуске"
+        chk_disable_startup: "Воспроизводить музыку при запуске",
+        nav_thanks: "Благодарности",
+        connect_me_on: "связаться со мной:"
     },
     zh: {
         splash_status: "正在初始化引擎...",
@@ -670,7 +685,7 @@ const translations = {
         btn_clear: "清空输入",
         btn_add_more: "添加更多链接",
         drag_to_reorder: "拖拽以重新排序下载顺序",
-        btn_start_process: "开始下载",
+        btn_start_process: "起飞",
         btn_pause_queue: "暂停队列",
         btn_resume_queue: "恢复下载",
         btn_stop_all: "停止所有下载",
@@ -736,7 +751,9 @@ const translations = {
         btn_play: "播放",
         btn_pause: "暂停",
         lbl_volume: "音量",
-        chk_disable_startup: "启动时播放音乐"
+        chk_disable_startup: "启动时播放音乐",
+        nav_thanks: "特别鸣谢",
+        connect_me_on: "联系我:"
     },
     ja: {
         splash_status: "エンジンを初期化中...",
@@ -761,7 +778,7 @@ const translations = {
         btn_start_process: "ダウンロード開始",
         btn_pause_queue: "一時停止",
         btn_resume_queue: "再開",
-        btn_stop_all: "すべて停止",
+        btn_stop_all: "中止",
         btn_clear_queue: "キューをクリア",
         download_queue: "ダウンロードキュー",
         queue_empty_desc: "キューが空です。リンクを貼り付けて開始してください！",
@@ -824,7 +841,9 @@ const translations = {
         btn_play: "再生",
         btn_pause: "一時停止",
         lbl_volume: "音量",
-        chk_disable_startup: "起動時に音楽を再生"
+        chk_disable_startup: "起動時に音楽を再生",
+        nav_thanks: "特別感謝",
+        connect_me_on: "連絡先:"
     },
     ko: {
         splash_status: "엔진 초기화 중...",
@@ -849,7 +868,7 @@ const translations = {
         btn_start_process: "다운로드 시작",
         btn_pause_queue: "일시 중지",
         btn_resume_queue: "다운로드 재개",
-        btn_stop_all: "모두 중지",
+        btn_stop_all: "중단",
         btn_clear_queue: "대기열 비우기",
         download_queue: "다운로드 대기열",
         queue_empty_desc: "대기열이 비어 있습니다. 링크를 붙여넣고 시작하세요!",
@@ -912,7 +931,9 @@ const translations = {
         btn_play: "재생",
         btn_pause: "일시 중지",
         lbl_volume: "볼륨",
-        chk_disable_startup: "시작 시 음악 재생"
+        chk_disable_startup: "시작 시 음악 재생",
+        nav_thanks: "특별 감사",
+        connect_me_on: "연락처:"
     },
     hi: {
         splash_status: "इंजन प्रारंभ हो रहा है...",
@@ -934,10 +955,10 @@ const translations = {
         btn_clear: "साफ करें",
         btn_add_more: "अधिक लिंक जोड़ें",
         drag_to_reorder: "डाउनलोड क्रम बदलने के लिए खींचें",
-        btn_start_process: "प्रक्रिया शुरू करें",
+        btn_start_process: "लिफ्ट ऑफ",
         btn_pause_queue: "कतार रोकें",
         btn_resume_queue: "कतार पुनः चालू करें",
-        btn_stop_all: "सभी डाउनलोड रोकें",
+        btn_stop_all: "रद्द करें",
         btn_clear_queue: "कतार साफ करें",
         download_queue: "डाउनलोड कतार",
         queue_empty_desc: "कतार खाली है। लिंक पेस्ट करें और डाउनलोड शुरू करें!",
@@ -1000,7 +1021,9 @@ const translations = {
         btn_play: "चलाएं",
         btn_pause: "रोकें",
         lbl_volume: "ध्वनि",
-        chk_disable_startup: "स्टार्टअप पर संगीत चलाएं"
+        chk_disable_startup: "स्टार्टअप पर संगीत चलाएं",
+        nav_thanks: "विशेष धन्यवाद",
+        connect_me_on: "मुझसे जुड़ें:"
     },
     ar: {
         splash_status: "جاري تهيئة المحرك...",
@@ -1088,7 +1111,9 @@ const translations = {
         btn_play: "تشغيل",
         btn_pause: "إيقاف مؤقت",
         lbl_volume: "مستوى الصوت",
-        chk_disable_startup: "تشغيل الموسيقى عند بدء التشغيل"
+        chk_disable_startup: "تشغيل الموسيقى عند بدء التشغيل",
+        nav_thanks: "شكر خاص",
+        connect_me_on: "تواصل معي على:"
     }
 };
 
@@ -1660,6 +1685,7 @@ navDownloads.addEventListener('click', () => {
     navHistory.classList.remove('active');
     navCustomize.classList.remove('active');
     navAbout.classList.remove('active');
+    if (navThanks) navThanks.classList.remove('active');
     
     // Switch active containers with entry transitions
     contentGrid.classList.remove('hidden');
@@ -1670,6 +1696,7 @@ navDownloads.addEventListener('click', () => {
     historySection.classList.add('hidden');
     customizeSection.classList.add('hidden');
     aboutSection.classList.add('hidden');
+    if (thanksSection) thanksSection.classList.add('hidden');
     
     // Ensure console is hidden in downloads dashboard tab
     consoleSection.classList.add('hidden');
@@ -1682,11 +1709,13 @@ navConsole.addEventListener('click', () => {
     navHistory.classList.remove('active');
     navCustomize.classList.remove('active');
     navAbout.classList.remove('active');
+    if (navThanks) navThanks.classList.remove('active');
     
     contentGrid.classList.add('hidden');
     historySection.classList.add('hidden');
     customizeSection.classList.add('hidden');
     aboutSection.classList.add('hidden');
+    if (thanksSection) thanksSection.classList.add('hidden');
     consoleSection.classList.remove('hidden');
     
     consoleSection.classList.remove('full-height');
@@ -1722,11 +1751,13 @@ navCustomize.addEventListener('click', () => {
     navConsole.classList.remove('active');
     navHistory.classList.remove('active');
     navAbout.classList.remove('active');
+    if (navThanks) navThanks.classList.remove('active');
     
     contentGrid.classList.add('hidden');
     consoleSection.classList.add('hidden');
     historySection.classList.add('hidden');
     aboutSection.classList.add('hidden');
+    if (thanksSection) thanksSection.classList.add('hidden');
     
     customizeSection.classList.remove('hidden');
     customizeSection.classList.remove('fade-in');
@@ -1740,17 +1771,43 @@ navAbout.addEventListener('click', () => {
     navConsole.classList.remove('active');
     navHistory.classList.remove('active');
     navCustomize.classList.remove('active');
+    if (navThanks) navThanks.classList.remove('active');
     
     contentGrid.classList.add('hidden');
     consoleSection.classList.add('hidden');
     historySection.classList.add('hidden');
     customizeSection.classList.add('hidden');
+    if (thanksSection) thanksSection.classList.add('hidden');
     
     aboutSection.classList.remove('hidden');
     aboutSection.classList.remove('fade-in');
     void aboutSection.offsetWidth; // Trigger reflow
     aboutSection.classList.add('fade-in');
 });
+
+if (navThanks) {
+    navThanks.addEventListener('click', () => {
+        navThanks.classList.add('active');
+        navDownloads.classList.remove('active');
+        navConsole.classList.remove('active');
+        navHistory.classList.remove('active');
+        navCustomize.classList.remove('active');
+        navAbout.classList.remove('active');
+        
+        contentGrid.classList.add('hidden');
+        consoleSection.classList.add('hidden');
+        historySection.classList.add('hidden');
+        customizeSection.classList.add('hidden');
+        aboutSection.classList.add('hidden');
+        
+        if (thanksSection) {
+            thanksSection.classList.remove('hidden');
+            thanksSection.classList.remove('fade-in');
+            void thanksSection.offsetWidth; // Trigger reflow
+            thanksSection.classList.add('fade-in');
+        }
+    });
+}
 
 btnClearHistory.addEventListener('click', async () => {
     try {
@@ -1847,6 +1904,20 @@ window.js_on_downloads_completed = function() {
     engineStatusDot.className = 'pulse-dot idle';
     window.engineState = 'idle';
     updateEngineStatusDisplay();
+
+    // Trigger completion log
+    js_log("System", "Rocket landed successfully");
+
+    try {
+        if (Notification.permission === "granted") {
+            new Notification("Rocket DL", {
+                body: "Rocket landed successfully",
+                icon: "logo.png"
+            });
+        }
+    } catch (e) {
+        console.error("OS Notification error:", e);
+    }
 };
 
 window.js_on_downloads_paused = function() {
@@ -2231,33 +2302,22 @@ window.js_update_download_progress = function(url, state, percent, speed, receiv
 
 
 
-// About Section Links & Buttons External Browser Redirection
-const linkLinkedin = document.getElementById('link-linkedin');
-const btnGithub = document.getElementById('btn-github');
-
-if (linkLinkedin) {
-    linkLinkedin.addEventListener('click', async (e) => {
+// External browser redirection helper for standard class="external-link" tags
+document.addEventListener('click', async (e) => {
+    const targetLink = e.target.closest('a.external-link, button.external-link');
+    if (targetLink) {
         e.preventDefault();
-        try {
-            const api = await getPythonApi();
-            await api.open_external_url('https://www.linkedin.com/in/jeelpandya03');
-        } catch (err) {
-            console.error("Failed to open LinkedIn:", err);
+        const url = targetLink.getAttribute('href') || targetLink.getAttribute('data-href');
+        if (url) {
+            try {
+                const api = await getPythonApi();
+                await api.open_external_url(url);
+            } catch (err) {
+                console.error("Failed to open external URL:", url, err);
+            }
         }
-    });
-}
-
-if (btnGithub) {
-    btnGithub.addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-            const api = await getPythonApi();
-            await api.open_external_url('https://github.com/error404JPnotfound');
-        } catch (err) {
-            console.error("Failed to open GitHub:", err);
-        }
-    });
-}
+    }
+});
 
 
 if (btnProceed) {
@@ -2273,6 +2333,7 @@ if (btnProceed) {
         }
 
         hasProceeded = true;
+        if (btnBack) btnBack.classList.add('hidden');
 
         // Parse and populate the reorder list and queue
         parseAndBuildQueue();
@@ -2286,6 +2347,18 @@ if (btnProceed) {
     });
 }
 
+if (btnBack) {
+    btnBack.addEventListener('click', () => {
+        hasProceeded = true;
+        if (urlInputs) urlInputs.classList.add('hidden-el');
+        if (initialActions) initialActions.classList.add('hidden-el');
+        if (addMoreContainer) addMoreContainer.classList.remove('hidden-el');
+        if (reorderListContainer) reorderListContainer.classList.remove('hidden-el');
+        if (processActions) processActions.classList.remove('hidden-el');
+        if (btnBack) btnBack.classList.add('hidden');
+    });
+}
+
 if (btnClearInput) {
     btnClearInput.addEventListener('click', () => {
         urlInputs.value = '';
@@ -2296,6 +2369,7 @@ if (btnClearInput) {
         if (processActions) processActions.classList.add('hidden-el');
         if (urlInputs) urlInputs.classList.remove('hidden-el');
         if (addMoreContainer) addMoreContainer.classList.add('hidden-el');
+        if (btnBack) btnBack.classList.add('hidden');
         urlInputs.focus();
     });
 }
@@ -2313,6 +2387,7 @@ if (btnAddMore) {
             urlInputs.classList.remove('hidden-el');
         }
         if (initialActions) initialActions.classList.remove('hidden-el');
+        if (btnBack) btnBack.classList.remove('hidden');
         
         urlInputs.focus();
     });
@@ -2413,6 +2488,15 @@ async function initializeApp() {
         applyCustomColors();
         consoleSection.classList.add('hidden');
     }
+
+    // Request OS notification permissions
+    try {
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
+    } catch (e) {
+        console.error("Failed to request notification permission:", e);
+    }
 }
 
 if (document.readyState === 'loading') {
@@ -2425,3 +2509,56 @@ if (document.readyState === 'loading') {
 window.js_init_yt_playlist = () => {};
 window.js_update_yt_playlist_item = () => {};
 window.js_update_yt_progress = () => {};
+
+// ===== Welcome Tutorial (first launch only) =====
+(function initTutorial() {
+    const STORAGE_KEY = 'rocketdl_tutorial_done';
+    const overlay     = document.getElementById('tutorial-overlay');
+    const slides      = Array.from(document.querySelectorAll('.tut-slide'));
+    const dots        = Array.from(document.querySelectorAll('.tut-dot'));
+    const btnNext     = document.getElementById('tut-next');
+    const btnPrev     = document.getElementById('tut-prev');
+    const btnSkip     = document.getElementById('tut-skip');
+
+    if (!overlay || !slides.length) return;
+
+    // Show only on first launch
+    if (localStorage.getItem(STORAGE_KEY)) return;
+
+    let current = 0;
+    const total = slides.length; // 5 slides (0-4)
+
+    function goTo(index) {
+        slides[current].classList.remove('active');
+        dots[current].classList.remove('active');
+        current = Math.max(0, Math.min(index, total - 1));
+        slides[current].classList.add('active');
+        dots[current].classList.add('active');
+
+        btnPrev.disabled = current === 0;
+        btnNext.textContent = current === total - 1 ? 'Got it 🚀' : 'Next →';
+    }
+
+    function closeTutorial() {
+        localStorage.setItem(STORAGE_KEY, '1');
+        overlay.style.animation = 'tutFadeIn 0.25s ease reverse forwards';
+        setTimeout(() => overlay.classList.add('hidden'), 260);
+    }
+
+    // Wait for splash to finish, then show tutorial
+    setTimeout(() => {
+        overlay.classList.remove('hidden');
+        goTo(0);
+    }, 5400); // just after splash disappears
+
+    btnNext.addEventListener('click', () => {
+        if (current === total - 1) { closeTutorial(); return; }
+        goTo(current + 1);
+    });
+
+    btnPrev.addEventListener('click', () => goTo(current - 1));
+    btnSkip.addEventListener('click', closeTutorial);
+
+    // Click on dots to jump
+    dots.forEach((dot, i) => dot.addEventListener('click', () => goTo(i)));
+})();

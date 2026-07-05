@@ -33,7 +33,7 @@
         <!-- Sidebar / Brand -->
         <aside class="sidebar">
             <div class="logo-area">
-                <img class="logo-icon" src="logo.png" alt="Rocket DL Logo" style="width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 0 6px var(--primary-glow)); margin-right: 8px;">
+                <img class="logo-icon" src="logo.png" alt="Rocket DL Logo" style="object-fit: contain;">
                 <div class="logo-text">
                     <h1>Rocket DL</h1>
                     <span data-i18n="sidebar_subtitle">Download Engine</span>
@@ -62,6 +62,10 @@
                 <button class="nav-item" id="nav-about">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                     <span data-i18n="nav_about">About</span>
+                </button>
+                <button class="nav-item" id="nav-thanks">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span data-i18n="nav_thanks">Special Thanks</span>
                 </button>
             </nav>
             
@@ -106,6 +110,9 @@
                             <button class="btn btn-primary" id="btn-proceed">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                                 <span data-i18n="btn_proceed">Proceed</span>
+                            </button>
+                            <button class="btn btn-secondary hidden" id="btn-back" data-i18n="btn_back">
+                                Back
                             </button>
                             <button class="btn btn-secondary" id="btn-clear-input" data-i18n="btn_clear">
                                 Clear
@@ -301,26 +308,92 @@
                 <div class="panel-header">
                     <h3 data-i18n="about_title">About Rocket DL</h3>
                 </div>
-                <div class="panel-body about-container" style="padding: 20px;">
-                    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6;" data-i18n="about_description">
+                <div class="panel-body about-container" style="padding: 24px;">
+                    <!-- Centered 200px Rocket DL Logo -->
+                    <div style="display: flex; justify-content: center; margin-bottom: 24px;">
+                        <img src="logo.png" alt="Rocket DL Logo" style="width: 200px; height: 200px; object-fit: contain; filter: drop-shadow(0 0 10px var(--primary-glow));">
+                    </div>
+
+                    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6;" data-i18n="about_description">
                         Rocket DL is a premium, high-speed download manager designed for queue-based multi-threaded downloads and automated YouTube playlist extraction. Built with custom aesthetics and an intuitive user interface.
                     </p>
-                    <div class="about-links" style="display: flex; flex-direction: column; gap: 20px;">
-                        <div class="about-item" style="display: flex; align-items: center; gap: 12px;">
-                            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="color: #0077b5;">
-                                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                            </svg>
-                            <span style="font-size: 0.9rem; color: var(--text-color);" data-i18n="dev_linkedin">Developer LinkedIn:</span>
-                            <a href="#" id="link-linkedin" style="color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer; transition: color 0.2s;">LinkedIn</a>
+
+                    <!-- Features Summary -->
+                    <div style="margin-bottom: 24px;">
+                        <h4 style="font-size: 1rem; color: var(--text-main); font-weight: 600; margin-bottom: 10px;" data-i18n="about_features_title">Key Features</h4>
+                        <ul style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0; line-height: 1.8; padding-left: 20px; list-style-type: disc;">
+                            <li>Multi-threaded download acceleration splitting files for maximum speed</li>
+                            <li>Comprehensive queue management (pause, resume, reorder, and clear items)</li>
+                            <li>Automated YouTube playlist parsing and quality/format selection extraction</li>
+                            <li>Premium theme customization (colors, light/dark themes) and 11 UI languages</li>
+                            <li>Real-time visual monitoring (speed, ETA, logs console, and progress bars)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Developer Profile Info -->
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 24px; margin-top: 24px;">
+                        <h4 style="font-size: 1rem; color: var(--text-main); font-weight: 600; margin-bottom: 12px;">Developer</h4>
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 1rem; color: var(--text-main); font-weight: 700;">Jeel Pandya</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);"><span data-i18n="connect_me_on">connect me on:</span></span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <a class="external-link" href="https://github.com/error404JPnotfound" style="display: inline-flex;" title="GitHub Profile">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                                </a>
+                                <a class="external-link" href="https://www.linkedin.com/in/jeelpandya03" style="display: inline-flex;" title="LinkedIn Profile">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                                </a>
+                            </div>
                         </div>
-                        <div class="about-item" style="display: flex; align-items: center; gap: 12px;">
-                            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="color: #f0f6fc;">
-                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                            </svg>
-                            <span style="font-size: 0.9rem; color: var(--text-color);" data-i18n="github_account">GitHub Account:</span>
-                            <button class="btn btn-secondary btn-sm" id="btn-github" style="cursor: pointer; display: flex; align-items: center; gap: 6px;" data-i18n="github_profile">
-                                GitHub Profile
-                            </button>
+                    </div>
+
+                    <!-- Suggestions Box -->
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 24px; margin-top: 24px;">
+                        <h4 style="font-size: 1rem; color: var(--text-main); font-weight: 600; margin-bottom: 12px;">Suggestions</h4>
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <!-- Gmail Logo -->
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="color: #ea4335; filter: drop-shadow(0 0 4px rgba(234, 67, 53, 0.25));"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-1.298 1.458-2.061 2.52-1.214L12 11.3l9.48-7.057c1.061-.847 2.52-.084 2.52 1.214z"/></svg>
+                                <span style="font-size: 0.95rem; color: var(--text-main); font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">curator.rocketdl@gmail.com</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Special Thanks Section -->
+            <section class="panel glass-panel hidden" id="thanks-section" style="margin-bottom: 24px;">
+                <div class="panel-header">
+                    <h3 data-i18n="nav_thanks">Special Thanks</h3>
+                </div>
+                <div class="panel-body" style="padding: 24px;">
+                    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6;" data-i18n="thanks_desc">
+                        A very special thanks to the following members for their incredible support, feedback, and contributions to this project:
+                    </p>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <!-- Poojan Kamani -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 1.05rem; color: var(--text-main); font-weight: 700;">Poojan Kamani</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Hunting Vulnerabilities and Testing</span>
+                            </div>
+                            <a class="external-link" href="https://bughunterpoojan.github.io/PoojanKamani_Portfolio/" title="GitHub Portfolio">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                            </a>
+                        </div>
+                        
+                        <!-- Himnish Chauhan -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 1.05rem; color: var(--text-main); font-weight: 700;">Himnish Chauhan</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">UI/UX designer</span>
+                            </div>
+                            <a class="external-link" href="https://github.com/Himnishchauhan" title="GitHub Profile">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -388,6 +461,107 @@
             </div>
         </div>
     </div>
+
+    <!-- ===== Welcome / Tutorial Overlay ===== -->
+    <div id="tutorial-overlay" class="tutorial-overlay hidden">
+        <div class="tutorial-card">
+            <!-- Header -->
+            <div class="tutorial-header">
+                <div class="tutorial-logo-row">
+                    <img src="logo.png" alt="Rocket DL" style="width:40px;height:40px;object-fit:contain;">
+                    <span class="tutorial-brand">Rocket DL</span>
+                </div>
+                <button id="tut-skip" class="tut-skip-btn">Skip Tutorial &times;</button>
+            </div>
+
+            <!-- Slides -->
+            <div class="tutorial-slides">
+
+                <!-- Slide 0: Welcome -->
+                <div class="tut-slide active" data-slide="0">
+                    <div class="tut-emoji">🚀</div>
+                    <h2 class="tut-title">Welcome to Rocket DL!</h2>
+                    <p class="tut-desc">Your blazing-fast, all-in-one download engine. Let's take a quick tour of everything you can do. It only takes a minute!</p>
+                    <div class="tut-tabs-preview">
+                        <span class="tut-tab-chip">📥 Downloads</span>
+                        <span class="tut-tab-chip">🎨 Customize</span>
+                        <span class="tut-tab-chip">📜 History</span>
+                        <span class="tut-tab-chip">ℹ️ About</span>
+                    </div>
+                </div>
+
+                <!-- Slide 1: Downloads -->
+                <div class="tut-slide" data-slide="1">
+                    <div class="tut-emoji">📥</div>
+                    <h2 class="tut-title">Downloads Tab</h2>
+                    <p class="tut-desc">This is mission control. Paste your URLs, reorder the queue, and hit <strong>Lift off</strong>.</p>
+                    <ul class="tut-features">
+                        <li><span class="tut-badge fast">⚡ F*cking Fast</span> Direct link downloads at max speed</li>
+                        <li><span class="tut-badge yt">▶ YouTube</span> Single videos in up to 4K / 60fps</li>
+                        <li><span class="tut-badge yt">▶ YouTube Playlists</span> Download entire playlists in one go</li>
+                        <li><span class="tut-badge other">🔗 Other Links</span> Any direct download URL supported</li>
+                    </ul>
+                    <div class="tut-coming-soon">🔜 Insta &amp; FB support coming in upcoming updates!</div>
+                </div>
+
+                <!-- Slide 2: Customize -->
+                <div class="tut-slide" data-slide="2">
+                    <div class="tut-emoji">🎨</div>
+                    <h2 class="tut-title">Customize Tab</h2>
+                    <p class="tut-desc">Make Rocket DL truly yours.</p>
+                    <ul class="tut-features">
+                        <li>🌈 Pick your <strong>primary accent color</strong></li>
+                        <li>🌗 Switch between <strong>Light / Dark</strong> themes</li>
+                        <li>🌍 Change the <strong>UI language</strong> (11 supported)</li>
+                        <li>🎵 Set <strong>background music</strong> &amp; startup volume</li>
+                        <li>📁 Choose your default <strong>download folder</strong></li>
+                    </ul>
+                </div>
+
+                <!-- Slide 3: History / Log -->
+                <div class="tut-slide" data-slide="3">
+                    <div class="tut-emoji">📜</div>
+                    <h2 class="tut-title">History &amp; System Log</h2>
+                    <p class="tut-desc">Keep tabs on every mission.</p>
+                    <ul class="tut-features">
+                        <li>🕑 <strong>History</strong> — Browse all past downloads with timestamps</li>
+                        <li>🖥️ <strong>System Log</strong> — Live engine output &amp; error diagnostics</li>
+                        <li>🗑️ Clear history or console with one click</li>
+                    </ul>
+                </div>
+
+                <!-- Slide 4: About / Special Thanks -->
+                <div class="tut-slide" data-slide="4">
+                    <div class="tut-emoji">❤️</div>
+                    <h2 class="tut-title">About &amp; Special Thanks</h2>
+                    <p class="tut-desc">Learn more about the app and the people who made it possible.</p>
+                    <ul class="tut-features">
+                        <li>ℹ️ <strong>About</strong> — App version, feature summary &amp; developer links</li>
+                        <li>💌 <strong>Suggestions</strong> — Drop us a message at <em>curator.rocketdl@gmail.com</em></li>
+                        <li>🏆 <strong>Special Thanks</strong> — The crew behind the scenes</li>
+                    </ul>
+                    <p class="tut-desc" style="margin-top:16px;">You're all set — ready for lift off? 🚀</p>
+                </div>
+
+            </div><!-- /.tutorial-slides -->
+
+            <!-- Footer: progress dots + nav buttons -->
+            <div class="tutorial-footer">
+                <div class="tut-dots" id="tut-dots">
+                    <span class="tut-dot active" data-dot="0"></span>
+                    <span class="tut-dot" data-dot="1"></span>
+                    <span class="tut-dot" data-dot="2"></span>
+                    <span class="tut-dot" data-dot="3"></span>
+                    <span class="tut-dot" data-dot="4"></span>
+                </div>
+                <div class="tut-nav">
+                    <button id="tut-prev" class="btn btn-secondary" disabled>← Back</button>
+                    <button id="tut-next" class="btn btn-primary">Next →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ===== End Tutorial Overlay ===== -->
 
     <script src="main.js"></script>
 </body>

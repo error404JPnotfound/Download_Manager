@@ -58,6 +58,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 echo "Installing requirements..."
+pip install --upgrade pip wheel setuptools
 pip install pywebview yt-dlp pyinstaller
 
 echo "Building Rocket DL.app..."

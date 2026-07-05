@@ -42,6 +42,13 @@ const btnPause = document.getElementById('btn-pause');
 const btnPauseText = document.getElementById('btn-pause-text');
 const btnStop = document.getElementById('btn-stop');
 const btnClear = document.getElementById('btn-clear');
+const btnProceed = document.getElementById('btn-proceed');
+const btnClearInput = document.getElementById('btn-clear-input');
+const initialActions = document.getElementById('initial-actions');
+const processActions = document.getElementById('process-actions');
+const btnAddMore = document.getElementById('btn-add-more');
+const addMoreContainer = document.getElementById('add-more-container');
+let hasProceeded = false;
 
 // Modal Elements
 const confirmModal = document.getElementById('confirm-modal');
@@ -165,37 +172,57 @@ function parseAndBuildQueue() {
         .map(line => line.trim())
         .filter(line => line.length > 0);
     
-    // Show or hide reorder list based on whether there are URLs
+    if (lines.length > 0) {
+        // Build new list preserving state of existing entries
+        const existingItems = {};
+        queueItems.forEach(item => {
+            existingItems[item.url] = item;
+        });
+
+        // Add any URLs that aren't already in the queue
+        lines.forEach(url => {
+            const alreadyExists = queueItems.some(item => item.url === url);
+            if (!alreadyExists) {
+                queueItems.push({
+                    url: url,
+                    id: getUrlId(url),
+                    status: 'queued',
+                    filename: ''
+                });
+            }
+        });
+
+        // Clear textarea so it is empty next time they click Add More Links
+        urlInputs.value = '';
+    }
+
+    // Show or hide reorder list based on whether there are URLs and user has proceeded
     if (reorderListContainer) {
-        if (lines.length > 0) {
-            reorderListContainer.classList.remove('hidden');
-            buildReorderList(lines);
+        if (queueItems.length > 0 && hasProceeded) {
+            reorderListContainer.classList.remove('hidden-el');
+            buildReorderList();
         } else {
-            reorderListContainer.classList.add('hidden');
+            reorderListContainer.classList.add('hidden-el');
             if (reorderList) {
                 reorderList.innerHTML = '';
             }
         }
     }
+
+    if (queueItems.length === 0) {
+        hasProceeded = false;
+        if (initialActions) initialActions.classList.remove('hidden-el');
+        if (processActions) processActions.classList.add('hidden-el');
+        if (urlInputs) urlInputs.classList.remove('hidden-el');
+        if (addMoreContainer) addMoreContainer.classList.add('hidden-el');
+    }
     
-    // Build new list preserving state of existing entries
-    const existingItems = {};
-    queueItems.forEach(item => {
-        existingItems[item.url] = item;
-    });
+    renderQueueList();
+    updateQueueState();
+}
 
-    queueItems = lines.map(url => {
-        if (existingItems[url]) {
-            return existingItems[url];
-        }
-        return {
-            url: url,
-            id: getUrlId(url),
-            status: 'queued',
-            filename: ''
-        };
-    });
-
+// Render the queue panel list in the UI
+function renderQueueList() {
     // Clear and redraw container
     const activeItems = queueList.querySelectorAll('.download-item');
     activeItems.forEach(el => el.remove());
@@ -262,36 +289,70 @@ function parseAndBuildQueue() {
             }
         }
     });
-
-    updateQueueState();
 }
 
 // Build the draggable reorder list below the paste box
 let dragSrcEl = null;
 
-function buildReorderList(lines) {
+function buildReorderList() {
     reorderList.innerHTML = '';
-    lines.forEach((url, index) => {
-        const item = document.createElement('div');
-        item.className = 'reorder-item';
-        item.draggable = true;
-        item.dataset.index = index;
-        item.innerHTML = `
+    queueItems.forEach((item, index) => {
+        const reorderItem = document.createElement('div');
+        reorderItem.className = 'reorder-item';
+        reorderItem.draggable = true;
+        reorderItem.dataset.index = index;
+        reorderItem.innerHTML = `
             <span class="reorder-grip">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/></svg>
             </span>
             <span class="reorder-index">${index + 1}</span>
-            <span class="reorder-url" title="${escapeHTML(url)}">${escapeHTML(url)}</span>
+            <span class="reorder-url" title="${escapeHTML(item.url)}">${escapeHTML(item.url)}</span>
+            <button class="btn-delete-item" data-index="${index}" title="Remove link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+            </button>
         `;
 
-        item.addEventListener('dragstart', handleDragStart);
-        item.addEventListener('dragover', handleDragOver);
-        item.addEventListener('dragenter', handleDragEnter);
-        item.addEventListener('dragleave', handleDragLeave);
-        item.addEventListener('drop', handleDrop);
-        item.addEventListener('dragend', handleDragEnd);
+        reorderItem.addEventListener('dragstart', handleDragStart);
+        reorderItem.addEventListener('dragover', handleDragOver);
+        reorderItem.addEventListener('dragenter', handleDragEnter);
+        reorderItem.addEventListener('dragleave', handleDragLeave);
+        reorderItem.addEventListener('drop', handleDrop);
+        reorderItem.addEventListener('dragend', handleDragEnd);
 
-        reorderList.appendChild(item);
+        // Add click listener to the dustbin button
+        const deleteBtn = reorderItem.querySelector('.btn-delete-item');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const deleteIndex = parseInt(deleteBtn.dataset.index);
+                
+                // Remove from queue
+                queueItems.splice(deleteIndex, 1);
+                
+                // Re-render
+                buildReorderList();
+                updateQueueState();
+                
+                // If queue becomes empty, reset back to initial state!
+                if (queueItems.length === 0) {
+                    hasProceeded = false;
+                    if (initialActions) initialActions.classList.remove('hidden-el');
+                    if (processActions) processActions.classList.add('hidden-el');
+                    if (urlInputs) urlInputs.classList.remove('hidden-el');
+                    if (addMoreContainer) addMoreContainer.classList.add('hidden-el');
+                    hideQueuePanel();
+                } else {
+                    renderQueueList();
+                }
+            });
+        }
+
+        reorderList.appendChild(reorderItem);
     });
 }
 
@@ -325,18 +386,13 @@ function handleDrop(e) {
         const fromIndex = parseInt(dragSrcEl.dataset.index);
         const toIndex = parseInt(this.dataset.index);
 
-        // Get current lines from textarea
-        const lines = urlInputs.value.split('\n')
-            .map(l => l.trim())
-            .filter(l => l.length > 0);
+        // Move the item directly inside our queueItems array
+        const [moved] = queueItems.splice(fromIndex, 1);
+        queueItems.splice(toIndex, 0, moved);
 
-        // Move the item
-        const [moved] = lines.splice(fromIndex, 1);
-        lines.splice(toIndex, 0, moved);
-
-        // Write back and rebuild
-        urlInputs.value = lines.join('\n');
-        parseAndBuildQueue();
+        // Rebuild reorder list and redraw queue list panel
+        buildReorderList();
+        renderQueueList();
     }
 }
 
@@ -370,7 +426,6 @@ async function getPythonApi() {
 }
 
 // Event Listeners
-urlInputs.addEventListener('input', parseAndBuildQueue);
 
 async function startQueueDownloads(urls) {
     showQueuePanel();
@@ -385,7 +440,6 @@ async function startQueueDownloads(urls) {
 }
 
 btnStart.addEventListener('click', async () => {
-    parseAndBuildQueue(); // Run once more to ensure synchronized state
     if (queueItems.length === 0) {
         js_log("System", "Error: No links in the queue. Please paste links first.");
         return;
@@ -478,8 +532,15 @@ btnModalConfirm.addEventListener('click', async () => {
 
 btnClear.addEventListener('click', async () => {
     urlInputs.value = '';
+    hasProceeded = false;
     parseAndBuildQueue();
     
+    if (initialActions) initialActions.classList.remove('hidden-el');
+    if (reorderListContainer) reorderListContainer.classList.add('hidden-el');
+    if (processActions) processActions.classList.add('hidden-el');
+    if (urlInputs) urlInputs.classList.remove('hidden-el');
+    if (addMoreContainer) addMoreContainer.classList.add('hidden-el');
+
     // Hide queue panel and collapse grid back to full width input
     hideQueuePanel();
     
@@ -992,6 +1053,65 @@ if (btnGithub) {
 }
 
 
+if (btnProceed) {
+    btnProceed.addEventListener('click', () => {
+        const text = urlInputs.value.trim();
+        if (!text) {
+            urlInputs.focus();
+            urlInputs.style.borderColor = 'var(--danger)';
+            setTimeout(() => {
+                urlInputs.style.borderColor = '';
+            }, 1000);
+            return;
+        }
+
+        hasProceeded = true;
+
+        // Parse and populate the reorder list and queue
+        parseAndBuildQueue();
+
+        // Slide/fade transitions
+        if (urlInputs) urlInputs.classList.add('hidden-el');
+        if (initialActions) initialActions.classList.add('hidden-el');
+        if (addMoreContainer) addMoreContainer.classList.remove('hidden-el');
+        if (reorderListContainer) reorderListContainer.classList.remove('hidden-el');
+        if (processActions) processActions.classList.remove('hidden-el');
+    });
+}
+
+if (btnClearInput) {
+    btnClearInput.addEventListener('click', () => {
+        urlInputs.value = '';
+        hasProceeded = false;
+        parseAndBuildQueue();
+        if (initialActions) initialActions.classList.remove('hidden-el');
+        if (reorderListContainer) reorderListContainer.classList.add('hidden-el');
+        if (processActions) processActions.classList.add('hidden-el');
+        if (urlInputs) urlInputs.classList.remove('hidden-el');
+        if (addMoreContainer) addMoreContainer.classList.add('hidden-el');
+        urlInputs.focus();
+    });
+}
+
+if (btnAddMore) {
+    btnAddMore.addEventListener('click', () => {
+        hasProceeded = false;
+        
+        if (addMoreContainer) addMoreContainer.classList.add('hidden-el');
+        if (reorderListContainer) reorderListContainer.classList.add('hidden-el');
+        if (processActions) processActions.classList.add('hidden-el');
+        
+        if (urlInputs) {
+            urlInputs.value = '';
+            urlInputs.classList.remove('hidden-el');
+        }
+        if (initialActions) initialActions.classList.remove('hidden-el');
+        
+        urlInputs.focus();
+    });
+}
+
+
 // Initial load configuration
 async function initializeApp() {
     // Hide queue panel initially
@@ -1014,6 +1134,10 @@ async function initializeApp() {
         if (splashStatus) splashStatus.textContent = "Ready!";
         if (splashScreen) {
             splashScreen.classList.add('fade-out');
+        }
+        const appContainer = document.querySelector('.app-container');
+        if (appContainer) {
+            appContainer.classList.add('revealed');
         }
     }, 5000);
 

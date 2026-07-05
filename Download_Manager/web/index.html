@@ -107,8 +107,29 @@
                     </div>
                     <div class="panel-body">
                         <label for="url-inputs" class="sr-only">Paste URLs here (one per line):</label>
-                        <textarea id="url-inputs" placeholder="Paste your download URLs here...&#10;e.g., https://example.com/download-page-1&#10;https://example.com/download-page-2" spellcheck="false"></textarea>
-                        <div class="reorder-list-container hidden" id="reorder-list-container">
+                        <textarea id="url-inputs" class="fade-element" placeholder="Paste your download URLs here...&#10;e.g., https://example.com/download-page-1&#10;https://example.com/download-page-2" spellcheck="false"></textarea>
+                        
+                        <!-- Initial state buttons (Proceed and Clear) -->
+                        <div class="actions-group fade-element" id="initial-actions">
+                            <button class="btn btn-primary" id="btn-proceed">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                Proceed
+                            </button>
+                            <button class="btn btn-secondary" id="btn-clear-input">
+                                Clear
+                            </button>
+                        </div>
+
+                        <!-- Add More Links Button (Visible in active/proceeded state) -->
+                        <div id="add-more-container" class="fade-element hidden-el" style="margin-bottom: 12px; display: flex; justify-content: flex-end;">
+                            <button class="btn btn-secondary btn-sm" id="btn-add-more">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add More Links
+                            </button>
+                        </div>
+
+                        <!-- Ordering Bar: Drag to reorder download sequence -->
+                        <div class="reorder-list-container fade-element hidden-el" id="reorder-list-container">
                             <div class="reorder-list-header">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
                                 <span>Drag to reorder download sequence</span>
@@ -118,7 +139,8 @@
                             </div>
                         </div>
                         
-                        <div class="actions-group">
+                        <!-- Process actions group (Start Process, Pause, Stop, Clear Queue) -->
+                        <div class="actions-group fade-element hidden-el" id="process-actions">
                             <button class="btn btn-primary" id="btn-start">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                                 Start Process

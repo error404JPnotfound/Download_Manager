@@ -35,6 +35,18 @@ body {
     display: flex;
     height: 100vh;
     width: 100vw;
+    opacity: 0;
+    transform: scale(0.97);
+    filter: blur(10px);
+    transition: opacity 1.6s cubic-bezier(0.25, 1, 0.5, 1),
+                transform 1.6s cubic-bezier(0.25, 1, 0.5, 1),
+                filter 1.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.app-container.revealed {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
 }
 
 /* Sidebar Styling */
@@ -1657,4 +1669,69 @@ body.light-theme .reorder-item.dragging {
     100% {
         opacity: 0.9;
     }
+}
+
+/* Transitions for interactive elements reveal */
+.fade-element {
+    transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1),
+                transform 0.5s cubic-bezier(0.25, 1, 0.5, 1),
+                max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1),
+                margin 0.5s cubic-bezier(0.25, 1, 0.5, 1),
+                padding 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    opacity: 1;
+    overflow: visible;
+    transform: translateY(0) scale(1);
+    transform-origin: top center;
+}
+
+#url-inputs.fade-element {
+    max-height: 160px;
+}
+
+.actions-group.fade-element {
+    max-height: 50px;
+}
+
+#add-more-container.fade-element {
+    max-height: 40px;
+}
+
+.reorder-list-container.fade-element {
+    max-height: 500px;
+}
+
+.fade-element.hidden-el {
+    opacity: 0 !important;
+    max-height: 0px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(-12px) scale(0.96);
+    border-top: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+}
+
+/* Delete / Dustbin button styling in sort list */
+.btn-delete-item {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    transition: all var(--transition-speed) ease;
+    flex-shrink: 0;
+}
+
+.btn-delete-item:hover {
+    color: var(--danger);
+    background: var(--danger-glow);
 }

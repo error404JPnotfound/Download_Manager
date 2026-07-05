@@ -6,8 +6,16 @@ import time
 from pathlib import Path
 import urllib.request
 import urllib.parse
-import nodriver as uc
-from nodriver.cdp import browser as cdp_browser
+try:
+    import nodriver as uc
+    from nodriver.cdp import browser as cdp_browser
+    NODRIVER_AVAILABLE = True
+except Exception:
+    NODRIVER_AVAILABLE = False
+    class DummyBrowser:
+        class DownloadProgress:
+            pass
+    cdp_browser = DummyBrowser()
 
 def get_config_dir():
     appdata = os.environ.get("APPDATA")
@@ -234,6 +242,10 @@ async def download_via_browser(url, download_dir, headless):
     
     print(f"\n[System] Launching browser driver automation...")
     
+    if not NODRIVER_AVAILABLE:
+        print("[Error] High-speed downloading requires Python 3.10+ (nodriver) on macOS. Please update Python or use yt-dlp links instead.")
+        return False
+        
     args = [
         "--disable-popup-blocking",
         "--window-size=1920,1080",

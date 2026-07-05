@@ -8,8 +8,16 @@ from pathlib import Path
 import urllib.request
 import urllib.parse
 import webview
-import nodriver as uc
-from nodriver.cdp import browser as cdp_browser
+try:
+    import nodriver as uc
+    from nodriver.cdp import browser as cdp_browser
+    NODRIVER_AVAILABLE = True
+except Exception:
+    NODRIVER_AVAILABLE = False
+    class DummyBrowser:
+        class DownloadProgress:
+            pass
+    cdp_browser = DummyBrowser()
 import hashlib
 
 # Resolve the web directory path (crucial for PyInstaller packaging)
@@ -380,6 +388,11 @@ async def download_worker(urls, headless):
     try:
         run_js("js_log", "System", "Launching browser...")
         
+        if not NODRIVER_AVAILABLE:
+            run_js("js_log", "Error", "The high-speed downloader requires Python 3.10+ (nodriver) on macOS. Please update Python or use yt-dlp links instead.")
+            is_downloading = False
+            return
+
         # Configure Chrome arguments for stealth, stability, and popup handling
         args = [
             "--disable-popup-blocking",

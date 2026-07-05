@@ -28,7 +28,7 @@ def get_config_dir():
             appdata = os.environ.get("XDG_CONFIG_HOME")
             if not appdata:
                 appdata = os.path.join(os.path.expanduser("~"), ".config")
-    return Path(appdata) / "OctoDownloader"
+    return Path(appdata) / "RocketDL"
 
 CONFIG_DIR = get_config_dir()
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -161,7 +161,7 @@ def download_video(url, download_dir, quality_choice):
 
 def main():
     print("=" * 60)
-    print("         OCTODOWNLOADER - yt-dlp TERMINAL EDITION")
+    print("         ROCKET DL - yt-dlp TERMINAL EDITION")
     print("=" * 60)
     
     # 1. Resolve Save Location

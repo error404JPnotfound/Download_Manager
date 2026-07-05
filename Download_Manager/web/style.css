@@ -72,8 +72,8 @@ body {
 }
 
 .logo-icon {
-    width: 32px;
-    height: 32px;
+    width: 52px;
+    height: 52px;
     color: var(--primary);
     filter: drop-shadow(0 0 6px var(--primary-glow));
 }
@@ -1595,8 +1595,8 @@ body.light-theme .reorder-item.dragging {
 }
 
 .splash-logo {
-    width: 80px;
-    height: 80px;
+    width: 140px;
+    height: 140px;
     color: var(--primary);
     filter: drop-shadow(0 0 12px var(--primary-glow));
     animation: splash-pulse 2s infinite ease-in-out;
@@ -1734,4 +1734,72 @@ body.light-theme .reorder-item.dragging {
 .btn-delete-item:hover {
     color: var(--danger);
     background: var(--danger-glow);
+}
+
+/* Sound Volume Slider */
+.sound-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    margin: 0;
+    padding: 0;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.sound-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 0 4px var(--primary-glow);
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.sound-volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.25);
+}
+
+.sound-volume-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 0 4px var(--primary-glow);
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.sound-volume-slider::-moz-range-thumb:hover {
+    transform: scale(1.25);
+}
+
+body.light-theme .sound-volume-slider {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* Customize Section Scrollbar */
+#customize-section .panel-body {
+    overflow-y: auto;
+}
+
+#customize-section .panel-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+#customize-section .panel-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+}
+
+body.light-theme #customize-section .panel-body::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
 }

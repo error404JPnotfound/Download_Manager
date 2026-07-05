@@ -34,7 +34,7 @@ def generate_icon(path):
 
 def main():
     base_dir = Path(__file__).resolve().parent
-    build_root = base_dir / "octodownloader_1.0.0-1_all"
+    build_root = base_dir / "rocketdl_1.0.0-1_all"
     
     # Clean old build root if it exists
     if build_root.exists():
@@ -46,7 +46,7 @@ def main():
     # Define directories
     debian_dir = build_root / "DEBIAN"
     bin_dir = build_root / "usr" / "bin"
-    share_app_dir = build_root / "usr" / "share" / "octodownloader"
+    share_app_dir = build_root / "usr" / "share" / "rocketdl"
     desktop_dir = build_root / "usr" / "share" / "applications"
     pixmaps_dir = build_root / "usr" / "share" / "pixmaps"
     
@@ -64,12 +64,12 @@ def main():
         shutil.rmtree(dest_web)
     shutil.copytree(base_dir / "web", dest_web)
     
-    # Create the launcher script in /usr/bin/octodownloader
-    launcher_path = bin_dir / "octodownloader"
+    # Create the launcher script in /usr/bin/rocketdl
+    launcher_path = bin_dir / "rocketdl"
     print(f"Creating launcher script at: {launcher_path}")
     launcher_content = """#!/bin/bash
-# Launcher script for OctoDownloader
-VENV_DIR="$HOME/.local/share/octodownloader/venv"
+# Launcher script for Rocket DL
+VENV_DIR="$HOME/.local/share/rocketdl/venv"
 
 if [ ! -d "$VENV_DIR" ]; then
     if command -v zenity >/dev/null 2>&1; then
@@ -78,35 +78,35 @@ if [ ! -d "$VENV_DIR" ]; then
             python3 -m venv --system-site-packages "$VENV_DIR" >/dev/null 2>&1
             echo "40" ; echo "# Installing application packages (pywebview, nodriver, yt-dlp)..."
             "$VENV_DIR/bin/pip" install pywebview nodriver yt-dlp >/dev/null 2>&1
-            echo "100" ; echo "# Setup complete! Launching OctoDownloader..."
-        ) | zenity --progress --title="OctoDownloader Setup" --text="Initializing application..." --percentage=0 --auto-close --width=450
+            echo "100" ; echo "# Setup complete! Launching Rocket DL..."
+        ) | zenity --progress --title="Rocket DL Setup" --text="Initializing application..." --percentage=0 --auto-close --width=450
     else
-        echo "First-time setup: Initializing virtual environment for OctoDownloader..."
+        echo "First-time setup: Initializing virtual environment for Rocket DL..."
         python3 -m venv --system-site-packages "$VENV_DIR"
         echo "Installing required Python dependencies..."
         "$VENV_DIR/bin/pip" install pywebview nodriver yt-dlp
     fi
 fi
 
-exec "$VENV_DIR/bin/python3" /usr/share/octodownloader/app.py "$@"
+exec "$VENV_DIR/bin/python3" /usr/share/rocketdl/app.py "$@"
 """
     launcher_path.write_text(launcher_content, encoding="utf-8")
     os.chmod(launcher_path, 0o755)
     
     # Generate the application icon
-    icon_path = pixmaps_dir / "octodownloader.png"
+    icon_path = pixmaps_dir / "rocketdl.png"
     generate_icon(str(icon_path))
     
     # Create the Desktop entry file
-    desktop_path = desktop_dir / "octodownloader.desktop"
+    desktop_path = desktop_dir / "rocketdl.desktop"
     print(f"Creating desktop entry at: {desktop_path}")
     desktop_content = """[Desktop Entry]
 Version=1.0
 Type=Application
-Name=OctoDownloader
+Name=Rocket DL
 Comment=Premium Download Manager with PyWebView GUI
-Exec=/usr/bin/octodownloader
-Icon=octodownloader
+Exec=/usr/bin/rocketdl
+Icon=rocketdl
 Terminal=false
 Categories=Network;Utility;
 StartupNotify=true
@@ -117,14 +117,14 @@ StartupNotify=true
     # Create DEBIAN/control file
     control_path = debian_dir / "control"
     print(f"Creating DEBIAN control file at: {control_path}")
-    control_content = """Package: octodownloader
+    control_content = """Package: rocketdl
 Version: 1.0.0-1
 Section: net
 Priority: optional
 Architecture: all
-Maintainer: OctoDownloader Team <support@octodownloader.com>
+Maintainer: Rocket DL Team <support@rocketdl.com>
 Depends: python3, python3-venv, python3-gi, gir1.2-webkit2-4.0 | gir1.2-webkit2-4.1, chromium | google-chrome-stable, zenity, ffmpeg, nodejs
-Description: OctoDownloader - Premium Download Manager
+Description: Rocket DL - Premium Download Manager
  A beautiful download manager featuring glass-morphic UI, pausing/resuming,
  link dragging and dropping, history, and video downloading.
 """
@@ -138,21 +138,21 @@ Description: OctoDownloader - Premium Download Manager
     import subprocess
     import platform
 
-    deb_filename = "octodownloader_1.0.0-1_all.deb"
+    deb_filename = "rocketdl_1.0.0-1_all.deb"
     deb_out_path = base_dir.parent / deb_filename
 
     # Create README_KALI.txt (always)
     readme_path = base_dir.parent / "README_KALI.txt"
-    readme_content = """# OctoDownloader for Kali Linux / Debian
+    readme_content = """# Rocket DL for Kali Linux / Debian
 
-Thank you for choosing OctoDownloader! This directory contains the packaged version
+Thank you for choosing Rocket DL! This directory contains the packaged version
 of the app for Kali Linux (and other Debian-based distributions like Ubuntu/Debian).
 
 ## Installation
 
 To install the .deb package, run the following command in your terminal:
 
-    sudo dpkg -i octodownloader_1.0.0-1_all.deb
+    sudo dpkg -i rocketdl_1.0.0-1_all.deb
 
 If there are missing dependencies (e.g. Chrome/Chromium or WebKit2 runtime), run:
 
@@ -160,9 +160,9 @@ If there are missing dependencies (e.g. Chrome/Chromium or WebKit2 runtime), run
 
 ## How to Run
 
-Once installed, you can launch OctoDownloader in two ways:
- 1. Search for "OctoDownloader" in your Desktop Application Menu.
- 2. Run the command `octodownloader` directly from any terminal.
+Once installed, you can launch Rocket DL in two ways:
+ 1. Search for "Rocket DL" in your Desktop Application Menu.
+ 2. Run the command `rocketdl` directly from any terminal.
 
 Enjoy downloading!
 """
@@ -181,7 +181,7 @@ Enjoy downloading!
     except FileNotFoundError:
         dpkg_available = False
 
-    zip_path = base_dir.parent / "OctoDownloader_Kali_Linux.zip"
+    zip_path = base_dir.parent / "Rocket DL_Kali_Linux.zip"
 
     if dpkg_available:
         print("Building Debian package with dpkg-deb...")
@@ -221,12 +221,12 @@ Enjoy downloading!
 # Run this script on Kali Linux / any Debian-based system to produce the .deb
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BUILD_ROOT="$SCRIPT_DIR/octodownloader_1.0.0-1_all"
-DEB_OUT="$SCRIPT_DIR/octodownloader_1.0.0-1_all.deb"
+BUILD_ROOT="$SCRIPT_DIR/rocketdl_1.0.0-1_all"
+DEB_OUT="$SCRIPT_DIR/rocketdl_1.0.0-1_all.deb"
 
 echo "Building: $DEB_OUT"
 dpkg-deb --build --root-owner-group "$BUILD_ROOT" "$DEB_OUT"
-echo "Done! Install with: sudo dpkg -i octodownloader_1.0.0-1_all.deb"
+echo "Done! Install with: sudo dpkg -i rocketdl_1.0.0-1_all.deb"
 """
         build_sh_path.write_text(build_sh_content, encoding="utf-8")
         print(f"build_deb.sh written at: {build_sh_path}")
@@ -246,10 +246,10 @@ echo "Done! Install with: sudo dpkg -i octodownloader_1.0.0-1_all.deb"
         print(f"Staging ZIP created: {zip_path}")
         print()
         print("Next steps:")
-        print("  1. Copy OctoDownloader_Kali_Linux.zip to your Kali VM")
-        print("  2. Run:  unzip OctoDownloader_Kali_Linux.zip")
+        print("  1. Copy Rocket DL_Kali_Linux.zip to your Kali VM")
+        print("  2. Run:  unzip Rocket DL_Kali_Linux.zip")
         print("  3. Run:  chmod +x build_deb.sh && ./build_deb.sh")
-        print("  4. Run:  sudo dpkg -i octodownloader_1.0.0-1_all.deb")
+        print("  4. Run:  sudo dpkg -i rocketdl_1.0.0-1_all.deb")
     
 if __name__ == "__main__":
     main()

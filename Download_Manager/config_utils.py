@@ -1,7 +1,7 @@
 """
 config_utils.py
 
-Shared configuration path resolution for OctoDownloader.
+Shared configuration path resolution for Rocket DL.
 
 Fixes the "settings reset when launched via shortcut" bug by ensuring
 the config directory resolves the same way regardless of how the app
@@ -23,7 +23,7 @@ from pathlib import Path
 
 def get_config_dir() -> Path:
     """
-    Resolve the OctoDownloader config directory consistently.
+    Resolve the Rocket DL config directory consistently.
 
     Resolution order:
       1. APPDATA environment variable (exact match).
@@ -35,7 +35,7 @@ def get_config_dir() -> Path:
 
     After resolving the correct path, checks for and migrates any
     legacy config that was previously saved to the wrong fallback
-    location (~/OctoDownloader) due to the old buggy logic.
+    location (~/Rocket DL) due to the old buggy logic.
     """
     appdata = os.environ.get("APPDATA")
 
@@ -53,7 +53,7 @@ def get_config_dir() -> Path:
             if not appdata:
                 appdata = os.path.join(os.path.expanduser("~"), ".config")
 
-    config_dir = Path(appdata) / "OctoDownloader"
+    config_dir = Path(appdata) / "RocketDL"
     _migrate_legacy_config(config_dir)
     config_dir.mkdir(parents=True, exist_ok=True)
     return config_dir
@@ -62,7 +62,7 @@ def get_config_dir() -> Path:
 def _migrate_legacy_config(new_config_dir: Path) -> None:
     """
     One-time migration: if a user previously had settings saved under
-    the old buggy fallback path (~/OctoDownloader, from Path.home()),
+    the old buggy fallback path (~/Rocket DL, from Path.home()),
     copy them into the correct location so settings/theme/history
     don't appear to reset after upgrading.
 
@@ -71,7 +71,7 @@ def _migrate_legacy_config(new_config_dir: Path) -> None:
       - Only runs if the new config dir doesn't already exist.
       - Never raises; logs a warning and lets the app continue.
     """
-    legacy_dir = Path.home() / "OctoDownloader"
+    legacy_dir = Path.home() / "RocketDL"
 
     if legacy_dir == new_config_dir:
         return  # old and new paths are the same, nothing to migrate
@@ -81,8 +81,8 @@ def _migrate_legacy_config(new_config_dir: Path) -> None:
             new_config_dir.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(legacy_dir, new_config_dir)
             print(
-                f"[OctoDownloader] Migrated legacy config from "
+                f"[Rocket DL] Migrated legacy config from "
                 f"{legacy_dir} to {new_config_dir}"
             )
         except Exception as e:
-            print(f"[OctoDownloader] Warning: could not migrate legacy config: {e}")
+            print(f"[Rocket DL] Warning: could not migrate legacy config: {e}")

@@ -1,8 +1,8 @@
-# OctoDownloader – Premium Download Manager
+# Rocket DL – Premium Download Manager
 
 ## How to run
-1. Download and unzip `OctoDownloader.zip`.
-2. Double‑click `OctoDownloader.exe`. The app will create its configuration folder automatically at `%APPDATA%\OctoDownloader\` and use your default **Downloads** folder as the target directory.
+1. Download and unzip `Rocket DL.zip`.
+2. Double‑click `Rocket DL.exe`. The app will create its configuration folder automatically at `%APPDATA%\Rocket DL\` and use your default **Downloads** folder as the target directory.
 
 ## Features
 - Drag‑and‑drop URLs (or a .txt file with URLs) into the link box.
@@ -14,7 +14,7 @@
 - Windows 10/11 (64‑bit). No additional software required – the executable bundles a Python interpreter and all dependencies.
 
 ## Updating
-Replace the old `OctoDownloader.exe` with the new one from a newer release. All settings and history are kept in `%APPDATA%\OctoDownloader`.
+Replace the old `Rocket DL.exe` with the new one from a newer release. All settings and history are kept in `%APPDATA%\Rocket DL`.
 
 ## Building from source (optional)
 If you want to rebuild the app yourself:
@@ -22,8 +22,8 @@ If you want to rebuild the app yourself:
 2. `pip install -r requirements.txt` (install `pywebview`, `pyinstaller`, etc.).
 3. Run:
    ```
-   python -m PyInstaller --onefile --windowed --name="OctoDownloader" --add-data "web;web" app.py
+   python -m PyInstaller --onefile --windowed --name="Rocket DL" --add-data "web;web" app.py
    ```
-   The compiled binary will appear in `dist\OctoDownloader.exe`.
+   The compiled binary will appear in `dist\Rocket DL.exe`.
 
 Enjoy!

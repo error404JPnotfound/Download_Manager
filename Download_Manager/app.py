@@ -34,7 +34,7 @@ def get_config_dir():
             appdata = os.environ.get("XDG_CONFIG_HOME")
             if not appdata:
                 appdata = os.path.join(os.path.expanduser("~"), ".config")
-    return Path(appdata) / "OctoDownloader"
+    return Path(appdata) / "RocketDL"
 
 CONFIG_DIR = get_config_dir()
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -1104,7 +1104,7 @@ if __name__ == '__main__':
 
     # Initialize and start native PyWebView window
     window_instance = webview.create_window(
-        title="OctoDownloader",
+        title="Rocket DL",
         url=index_url,
         js_api=Api(),
         width=1050,

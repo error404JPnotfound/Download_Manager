@@ -23,7 +23,7 @@ def get_config_dir():
             appdata = os.environ.get("XDG_CONFIG_HOME")
             if not appdata:
                 appdata = os.path.join(os.path.expanduser("~"), ".config")
-    return Path(appdata) / "OctoDownloader"
+    return Path(appdata) / "RocketDL"
 
 CONFIG_DIR = get_config_dir()
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -327,7 +327,7 @@ async def download_via_browser(url, download_dir, headless):
 
 async def main():
     print("=" * 60)
-    print("           OCTODOWNLOADER - CLI TERMINAL VERSION")
+    print("           ROCKET DL - CLI TERMINAL VERSION")
     print("=" * 60)
     
     # 1. Get save location path
@@ -372,7 +372,7 @@ async def main():
             print(f"[Error] Failed to download: {url}")
 
     print("\n" + "=" * 60)
-    print("All tasks completed. Thank you for using OctoDownloader!")
+    print("All tasks completed. Thank you for using Rocket DL!")
     print("=" * 60)
 
 if __name__ == '__main__':

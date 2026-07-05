@@ -34,7 +34,7 @@ def generate_icon(path):
 
 def main():
     base_dir = Path(__file__).resolve().parent
-    build_root = base_dir / "rocketdl_1.0.0-1_all"
+    build_root = base_dir / "rocketdl_1.0_amd64"
     
     # Clean old build root if it exists
     if build_root.exists():
@@ -118,15 +118,17 @@ StartupNotify=true
     control_path = debian_dir / "control"
     print(f"Creating DEBIAN control file at: {control_path}")
     control_content = """Package: rocketdl
-Version: 1.0.0-1
-Section: net
+Version: 1.0
+Section: utils
 Priority: optional
-Architecture: all
-Maintainer: Rocket DL Team <support@rocketdl.com>
+Architecture: amd64
+Maintainer: Jeel Pandya <curator.rocketdl@gmail.com>
+Homepage: https://github.com/error404JPnotfound
 Depends: python3, python3-venv, python3-gi, gir1.2-webkit2-4.0 | gir1.2-webkit2-4.1, chromium | google-chrome-stable, zenity, ffmpeg, nodejs
-Description: Rocket DL - Premium Download Manager
- A beautiful download manager featuring glass-morphic UI, pausing/resuming,
- link dragging and dropping, history, and video downloading.
+Description: Rocket DL – Premium Download Manager
+ Blazing-fast download manager supporting YouTube, playlists,
+ and direct links. Features a glass-morphism UI, 11 languages,
+ dark/light themes, download history, and live console output.
 """
     control_path.write_text(control_content, encoding="utf-8")
     os.chmod(control_path, 0o644)
@@ -138,8 +140,8 @@ Description: Rocket DL - Premium Download Manager
     import subprocess
     import platform
 
-    deb_filename = "rocketdl_1.0.0-1_all.deb"
-    deb_out_path = base_dir.parent / deb_filename
+    deb_filename = "rocketdl_1.0_amd64.deb"
+    deb_out_path = base_dir / "Sharing" / deb_filename
 
     # Create README_KALI.txt (always)
     readme_path = base_dir.parent / "README_KALI.txt"
@@ -152,7 +154,7 @@ of the app for Kali Linux (and other Debian-based distributions like Ubuntu/Debi
 
 To install the .deb package, run the following command in your terminal:
 
-    sudo dpkg -i rocketdl_1.0.0-1_all.deb
+    sudo dpkg -i rocketdl_1.0_amd64.deb
 
 If there are missing dependencies (e.g. Chrome/Chromium or WebKit2 runtime), run:
 
@@ -221,12 +223,12 @@ Enjoy downloading!
 # Run this script on Kali Linux / any Debian-based system to produce the .deb
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BUILD_ROOT="$SCRIPT_DIR/rocketdl_1.0.0-1_all"
-DEB_OUT="$SCRIPT_DIR/rocketdl_1.0.0-1_all.deb"
+BUILD_ROOT="$SCRIPT_DIR/Download_Manager/rocketdl_1.0_amd64"
+DEB_OUT="$SCRIPT_DIR/Download_Manager/Sharing/rocketdl_1.0_amd64.deb"
 
 echo "Building: $DEB_OUT"
 dpkg-deb --build --root-owner-group "$BUILD_ROOT" "$DEB_OUT"
-echo "Done! Install with: sudo dpkg -i rocketdl_1.0.0-1_all.deb"
+echo "Done! Install with: sudo dpkg -i Download_Manager/Sharing/rocketdl_1.0_amd64.deb"
 """
         build_sh_path.write_text(build_sh_content, encoding="utf-8")
         print(f"build_deb.sh written at: {build_sh_path}")
@@ -249,7 +251,7 @@ echo "Done! Install with: sudo dpkg -i rocketdl_1.0.0-1_all.deb"
         print("  1. Copy Rocket DL_Kali_Linux.zip to your Kali VM")
         print("  2. Run:  unzip Rocket DL_Kali_Linux.zip")
         print("  3. Run:  chmod +x build_deb.sh && ./build_deb.sh")
-        print("  4. Run:  sudo dpkg -i rocketdl_1.0.0-1_all.deb")
+        print("  4. Run:  sudo dpkg -i rocketdl_1.0_amd64.deb")
     
 if __name__ == "__main__":
     main()

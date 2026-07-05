@@ -2463,7 +2463,12 @@ async function initializeApp() {
 
     if (api) {
         try {
-            await api.check_requirements();
+            const req = await api.check_requirements();
+            if (req && req.status === "downloading") {
+                await new Promise(resolve => {
+                    window.js_on_requirements_done = resolve;
+                });
+            }
         } catch(e) {
             console.error("Failed requirement check", e);
         }
@@ -2564,6 +2569,7 @@ if (document.readyState === 'loading') {
 window.js_init_yt_playlist = () => {};
 window.js_update_yt_playlist_item = () => {};
 window.js_update_yt_progress = () => {};
+window.js_on_requirements_done = () => {};
 
 window.js_update_splash_status = function(status_text) {
     const splashScreen = document.getElementById('splash-screen');

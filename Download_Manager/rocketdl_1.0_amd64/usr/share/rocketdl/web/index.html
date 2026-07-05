@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        if (!sessionStorage.getItem('app_refreshed')) {
+            sessionStorage.setItem('app_refreshed', 'true');
+            location.reload();
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket DL - Premium Download Manager</title>
+    <!-- Use Google Fonts (Plus Jakarta Sans) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Splash / Loading Screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <img class="splash-logo" src="logo.png" alt="Rocket DL Logo" style="width: 140px; height: 140px; object-fit: contain; margin-bottom: 24px; animation: splash-pulse 2s infinite ease-in-out;">
+            <div class="splash-title">Rocket DL</div>
+            <div class="splash-loader">
+                <div class="splash-loader-bar"></div>
+            </div>
+            <div class="splash-status" data-i18n="splash_status">Initializing engine...</div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar / Brand -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <img class="logo-icon" src="logo.png" alt="Rocket DL Logo" style="object-fit: contain;">
+                <div class="logo-text">
+                    <h1>Rocket DL</h1>
+                    <span data-i18n="sidebar_subtitle">Download Engine</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button class="nav-item active" id="nav-downloads">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    <span data-i18n="nav_downloads">Downloads</span>
+                </button>
+                <button class="nav-item" id="nav-history">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+                    <span data-i18n="nav_history">History</span>
+                </button>
+                <button class="nav-item" id="nav-console">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 16 17"/><polyline points="12 5 18 11 24 5"/></svg>
+                    <span data-i18n="nav_log">System Log</span>
+                </button>
+
+                <button class="nav-item" id="nav-customize">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span data-i18n="nav_customize">Customize</span>
+                </button>
+
+                <button class="nav-item" id="nav-about">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span data-i18n="nav_about">About</span>
+                </button>
+                <button class="nav-item" id="nav-thanks">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span data-i18n="nav_thanks">Special Thanks</span>
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="pulse-dot idle" id="engine-status-dot"></span>
+                    <span id="engine-status-text" data-i18n="engine_status_idle">Engine: Idle</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Panel -->
+        <main class="main-content">
+
+
+            <!-- Save Destination Bar -->
+            <div class="path-bar glass-panel">
+                <div class="path-info">
+                    <span class="path-label" data-i18n="save_location">Save Location:</span>
+                    <span class="path-value" id="lbl-download-path">Loading...</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-change-path">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"/></svg>
+                    <span data-i18n="choose_directory">Choose Directory</span>
+                </button>
+            </div>
+
+            <!-- Dashboard Content Grid -->
+            <div class="content-grid">
+                <!-- Left Panel: Input links -->
+                <section class="panel glass-panel link-input-panel">
+                    <div class="panel-header">
+                        <h3 data-i18n="add_urls">Add URLs to Queue</h3>
+                        <span class="badge" id="queue-count" data-i18n="queue_count_0">0 items</span>
+                    </div>
+                    <div class="panel-body">
+                        <label for="url-inputs" class="sr-only">Paste URLs here (one per line):</label>
+                        <textarea id="url-inputs" class="fade-element" placeholder="Paste your download URLs here...&#10;e.g., https://example.com/download-page-1&#10;https://example.com/download-page-2" data-i18n-placeholder="url_placeholder" spellcheck="false"></textarea>
+                        
+                        <!-- Initial state buttons (Proceed and Clear) -->
+                        <div class="actions-group fade-element" id="initial-actions">
+                            <button class="btn btn-primary" id="btn-proceed">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                <span data-i18n="btn_proceed">Proceed</span>
+                            </button>
+                            <button class="btn btn-secondary hidden" id="btn-back" data-i18n="btn_back">
+                                Back
+                            </button>
+                            <button class="btn btn-secondary" id="btn-clear-input" data-i18n="btn_clear">
+                                Clear
+                            </button>
+                        </div>
+
+                        <!-- Add More Links Button (Visible in active/proceeded state) -->
+                        <div id="add-more-container" class="fade-element hidden-el" style="margin-bottom: 12px; display: flex; justify-content: flex-end;">
+                            <button class="btn btn-secondary btn-sm" id="btn-add-more">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <span data-i18n="btn_add_more">Add More Links</span>
+                            </button>
+                        </div>
+
+                        <!-- Ordering Bar: Drag to reorder download sequence -->
+                        <div class="reorder-list-container fade-element hidden-el" id="reorder-list-container">
+                            <div class="reorder-list-header">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                                <span data-i18n="drag_to_reorder">Drag to reorder download sequence</span>
+                            </div>
+                            <div class="reorder-list" id="reorder-list">
+                                <!-- Draggable items injected here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Process actions group (Start Process, Pause, Stop, Clear Queue) -->
+                        <div class="actions-group fade-element hidden-el" id="process-actions">
+                            <button class="btn btn-primary" id="btn-start">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                <span data-i18n="btn_start_process">Start Process</span>
+                            </button>
+                            <button class="btn btn-secondary" id="btn-pause" disabled>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                                <span id="btn-pause-text" data-i18n="btn_pause_queue">Pause</span>
+                            </button>
+                            <button class="btn btn-danger" id="btn-stop" disabled>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/></svg>
+                                <span data-i18n="btn_stop_all">Stop All Downloads</span>
+                            </button>
+                            <button class="btn btn-tertiary" id="btn-clear" data-i18n="btn_clear_queue">
+                                Clear Queue
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right Panel: Queue List -->
+                <section class="panel glass-panel queue-panel hidden" id="queue-panel-section">
+                    <div class="panel-header">
+                        <h3 data-i18n="download_queue">Download Queue</h3>
+                    </div>
+                    <div class="panel-body list-container" id="queue-list">
+                        <div class="empty-state" id="queue-empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                            <p data-i18n="queue_empty_desc">Queue is empty. Paste links and start downloading!</p>
+                        </div>
+                        <!-- Download items will be dynamically injected here -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- Customize Section -->
+            <section class="panel glass-panel hidden" id="customize-section" style="margin-bottom: 24px;">
+                <div class="panel-header">
+                    <h3 data-i18n="customize_theme">Customize Theme Colors</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary btn-sm" id="btn-save-theme" data-i18n="btn_save_changes">Save Changes</button>
+                        <button class="btn btn-secondary btn-sm" id="btn-reset-theme" data-i18n="btn_reset_default">Reset to Default</button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;" data-i18n="customize_theme_desc">
+                        Adjust the primary colors of the application. Click "Save Changes" to persist them.
+                    </p>
+                    
+                    <div class="customize-grid">
+                        <div class="color-picker-group">
+                            <label for="pick-primary" data-i18n="primary_color_label">Primary Color (Buttons, Highlights)</label>
+                            <div class="picker-row">
+                                <input type="color" id="pick-primary" value="#ff6b6b">
+                                <span class="color-hex" id="hex-primary">#FF6B6B</span>
+                            </div>
+                        </div>
+
+                        <div class="color-picker-group">
+                            <label for="pick-secondary" data-i18n="secondary_color_label">Secondary Color (Speed, Progress Bar)</label>
+                            <div class="picker-row">
+                                <input type="color" id="pick-secondary" value="#4ecca3">
+                                <span class="color-hex" id="hex-secondary">#4ECCA3</span>
+                            </div>
+                        </div>
+
+                        <div class="color-picker-group">
+                            <label for="pick-accent" data-i18n="accent_color_label">Accent Color (Completed Badges)</label>
+                            <div class="picker-row">
+                                <input type="color" id="pick-accent" value="#ffe66d">
+                                <span class="color-hex" id="hex-accent">#FFE66D</span>
+                            </div>
+                        </div>
+
+                        <div class="color-picker-group">
+                            <label for="pick-bg" data-i18n="bg_color_label">Background Base Color</label>
+                            <div class="picker-row">
+                                <input type="color" id="pick-bg" value="#0f0e17">
+                                <span class="color-hex" id="hex-bg">#0F0E17</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="customize-divider" style="margin: 24px 0; border-top: 1px solid rgba(255,255,255,0.08);"></div>
+                    
+                    <div class="language-selection-group" style="max-width: 320px;">
+                        <label for="select-language" style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 8px; color: var(--text-color);" data-i18n="interface_language">Interface Language</label>
+                        <div class="yt-input-container" style="margin-left: 0;">
+                            <svg class="yt-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="left: 12px; color: var(--primary);"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            <select id="select-language" class="text-input-yt" style="padding-left: 40px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; color: var(--text-color);">
+                                <option value="en">English (English)</option>
+                                <option value="es">Español (Spanish)</option>
+                                <option value="fr">Français (French)</option>
+                                <option value="de">Deutsch (German)</option>
+                                <option value="pt">Português (Portuguese)</option>
+                                <option value="ru">Русский (Russian)</option>
+                                <option value="zh">中文 (Simplified Chinese)</option>
+                                <option value="ja">日本語 (Japanese)</option>
+                                <option value="ko">한국어 (Korean)</option>
+                                <option value="hi">हिन्दी (Hindi)</option>
+                                <option value="ar">العربية (Arabic)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="customize-divider" style="margin: 24px 0; border-top: 1px solid rgba(255,255,255,0.08);"></div>
+
+                    <div class="sound-settings-group" style="max-width: 320px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-color); display: flex; align-items: center; gap: 8px;" data-i18n="bg_music_title">
+                            Background Music
+                        </h4>
+                        
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            <button id="btn-sound-play" class="btn btn-secondary btn-sm" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <svg id="sound-play-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                <span id="sound-play-text" data-i18n="btn_play">Play</span>
+                            </button>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">
+                                <span data-i18n="lbl_volume">Volume</span>
+                                <span id="lbl-sound-volume">20%</span>
+                            </div>
+                            <input type="range" id="slider-sound-volume" class="sound-volume-slider" min="0" max="100" value="20">
+                        </div>
+
+                        <label class="checkbox-container" style="margin-top: 12px;">
+                            <input type="checkbox" id="chk-sound-disable-startup">
+                            <span class="checkmark"></span>
+                            <span data-i18n="chk_disable_startup">Play music on startup</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel glass-panel hidden" id="history-section" style="margin-bottom: 24px;">
+                <div class="panel-header">
+                    <h3 data-i18n="download_history">Download History</h3>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button class="btn btn-secondary btn-sm" id="btn-open-folder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                            <span data-i18n="downloads_folder">Downloads Folder</span>
+                        </button>
+                        <button class="btn btn-text" id="btn-clear-history" data-i18n="clear_history">Clear History</button>
+                    </div>
+                </div>
+                <div class="panel-body table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="th_filename">Filename</th>
+                                <th data-i18n="th_source_url">Source URL</th>
+                                <th data-i18n="th_datetime">Date/Time</th>
+                                <th data-i18n="th_status">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list-body">
+                            <!-- History items injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- About Section -->
+            <section class="panel glass-panel hidden" id="about-section" style="margin-bottom: 24px;">
+                <div class="panel-header">
+                    <h3 data-i18n="about_title">About Rocket DL</h3>
+                </div>
+                <div class="panel-body about-container" style="padding: 24px;">
+                    <!-- Centered 200px Rocket DL Logo -->
+                    <div style="display: flex; justify-content: center; margin-bottom: 24px;">
+                        <img src="logo.png" alt="Rocket DL Logo" style="width: 200px; height: 200px; object-fit: contain; filter: drop-shadow(0 0 10px var(--primary-glow));">
+                    </div>
+
+                    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6;" data-i18n="about_description">
+                        Rocket DL is a premium, high-speed download manager designed for queue-based multi-threaded downloads and automated YouTube playlist extraction. Built with custom aesthetics and an intuitive user interface.
+                    </p>
+
+                    <!-- Features Summary -->
+                    <div style="margin-bottom: 24px;">
+                        <h4 style="font-size: 1rem; color: var(--text-main); font-weight: 600; margin-bottom: 10px;" data-i18n="about_features_title">Key Features</h4>
+                        <ul style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0; line-height: 1.8; padding-left: 20px; list-style-type: disc;">
+                            <li>Multi-threaded download acceleration splitting files for maximum speed</li>
+                            <li>Comprehensive queue management (pause, resume, reorder, and clear items)</li>
+                            <li>Automated YouTube playlist parsing and quality/format selection extraction</li>
+                            <li>Premium theme customization (colors, light/dark themes) and 11 UI languages</li>
+                            <li>Real-time visual monitoring (speed, ETA, logs console, and progress bars)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Developer Profile Info -->
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 24px; margin-top: 24px;">
+                        <h4 style="font-size: 1rem; color: var(--text-main); font-weight: 600; margin-bottom: 12px;">Developer</h4>
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 1rem; color: var(--text-main); font-weight: 700;">Jeel Pandya</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);"><span data-i18n="connect_me_on">connect me on:</span></span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <a class="external-link" href="https://github.com/error404JPnotfound" style="display: inline-flex;" title="GitHub Profile">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                                </a>
+                                <a class="external-link" href="https://www.linkedin.com/in/jeelpandya03" style="display: inline-flex;" title="LinkedIn Profile">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Suggestions Box -->
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 24px; margin-top: 24px;">
+                        <h4 style="font-size: 1rem; color: var(--text-main); font-weight: 600; margin-bottom: 12px;">Suggestions</h4>
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <!-- Gmail Logo -->
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="color: #ea4335; filter: drop-shadow(0 0 4px rgba(234, 67, 53, 0.25));"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-1.298 1.458-2.061 2.52-1.214L12 11.3l9.48-7.057c1.061-.847 2.52-.084 2.52 1.214z"/></svg>
+                                <span style="font-size: 0.95rem; color: var(--text-main); font-weight: 600; font-family: monospace; letter-spacing: 0.5px;">curator.rocketdl@gmail.com</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Special Thanks Section -->
+            <section class="panel glass-panel hidden" id="thanks-section" style="margin-bottom: 24px;">
+                <div class="panel-header">
+                    <h3 data-i18n="nav_thanks">Special Thanks</h3>
+                </div>
+                <div class="panel-body" style="padding: 24px;">
+                    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6;" data-i18n="thanks_desc">
+                        A very special thanks to the following members for their incredible support, feedback, and contributions to this project:
+                    </p>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <!-- Poojan Kamani -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 1.05rem; color: var(--text-main); font-weight: 700;">Poojan Kamani</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Hunting Vulnerabilities and Testing</span>
+                            </div>
+                            <a class="external-link" href="https://bughunterpoojan.github.io/PoojanKamani_Portfolio/" title="GitHub Portfolio">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                            </a>
+                        </div>
+                        
+                        <!-- Himnish Chauhan -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 1.05rem; color: var(--text-main); font-weight: 700;">Himnish Chauhan</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">UI/UX designer</span>
+                            </div>
+                            <a class="external-link" href="https://github.com/Himnishchauhan" title="GitHub Profile">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bottom Section: Logs/Console -->
+            <section class="panel glass-panel console-panel hidden" id="console-section">
+                <div class="panel-header">
+                    <h3 data-i18n="console_title">Engine Console Output</h3>
+                    <button class="btn btn-text" id="btn-clear-console" data-i18n="clear_console">Clear Console</button>
+                </div>
+                <div class="panel-body console-output" id="console-box">
+                    <div class="console-line system" data-i18n="console_ready">[System] Engine ready. Waiting for tasks...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <!-- YouTube Quality Select Modal -->
+    <div id="yt-quality-modal" class="modal-overlay hidden">
+        <div class="modal-card glass-panel fade-in" style="max-width: 440px;">
+            <div class="modal-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="color: var(--primary);"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.518 3.5 12 3.5 12 3.5s-7.518 0-9.388.553a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11C4.482 20.5 12 20.5 12 20.5s7.518 0 9.388-.553a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                <h3 style="margin: 0;" data-i18n="yt_quality_title">YouTube Quality Settings</h3>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;" data-i18n="yt_quality_desc">We detected one or more YouTube links in your download queue. Please select your target quality option:</p>
+                <div class="input-group" style="margin-bottom: 24px;">
+                    <div class="yt-input-container">
+                        <svg class="yt-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <select id="modal-yt-quality" class="text-input-yt">
+                            <option value="1" data-i18n="yt_opt_1">Best Quality Combined (Up to 4K/60fps)</option>
+                            <option value="2" data-i18n="yt_opt_2">1080p at 60fps (or best available)</option>
+                            <option value="3" data-i18n="yt_opt_3">1080p at 30fps (saves space)</option>
+                            <option value="4" data-i18n="yt_opt_4">720p at 60fps (or best available)</option>
+                            <option value="5" data-i18n="yt_opt_5">720p at 30fps (saves space)</option>
+                            <option value="6" data-i18n="yt_opt_6">Audio Only (MP3 format extraction)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-tertiary" id="btn-yt-modal-cancel" data-i18n="modal_cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-yt-modal-confirm" data-i18n="modal_confirm_start">Confirm & Start</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-card glass-panel fade-in">
+            <div class="modal-header">
+                <h3 data-i18n="stop_modal_title">Stop All Downloads?</h3>
+            </div>
+            <div class="modal-body">
+                <p data-i18n="stop_modal_desc">Are you sure? You won't be able to resume the current downloads.</p>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="chk-dont-show">
+                    <span class="checkmark"></span>
+                    <span data-i18n="stop_modal_chk">Don't show this warning again</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-tertiary" id="btn-modal-cancel" data-i18n="modal_cancel">Cancel</button>
+                <button class="btn btn-danger" id="btn-modal-confirm" data-i18n="modal_stop_yes">Yes, Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fucking Fast Confirm Modal -->
+    <div id="ff-confirm-modal" class="modal-overlay hidden">
+        <div class="modal-card glass-panel fade-in" style="max-width: 440px;">
+            <div class="modal-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff5e5e;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <h3 style="margin: 0; color: #ff5e5e;">Warning: Fucking Fast Links</h3>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 24px; font-size: 0.9rem; color: var(--text-normal); line-height: 1.5;">
+                    You are going to download Fucking fast links which are not able to Pause after they are started, so make sure you are connected to a stable internet
+                </p>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-tertiary" id="btn-ff-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-ff-modal-continue" style="background-color: #ff5e5e; border-color: #ff5e5e;">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- High Speed Confirm Modal -->
+    <div id="hs-confirm-modal" class="modal-overlay hidden">
+        <div class="modal-card glass-panel fade-in" style="max-width: 440px;">
+            <div class="modal-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff5e5e;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <h3 style="margin: 0; color: #ff5e5e;">Warning: High Speed Links</h3>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 24px; font-size: 0.9rem; color: var(--text-normal); line-height: 1.5;">
+                    You are going to download High speed links which are not able to Pause after they are started, so make sure you are connected to a stable internet
+                </p>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-tertiary" id="btn-hs-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-hs-modal-continue" style="background-color: #ff5e5e; border-color: #ff5e5e;">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Welcome / Tutorial Overlay ===== -->
+    <div id="tutorial-overlay" class="tutorial-overlay hidden">
+        <div class="tutorial-card">
+            <!-- Header -->
+            <div class="tutorial-header">
+                <div class="tutorial-logo-row">
+                    <img src="logo.png" alt="Rocket DL" style="width:40px;height:40px;object-fit:contain;">
+                    <span class="tutorial-brand">Rocket DL</span>
+                </div>
+                <button id="tut-skip" class="tut-skip-btn">Skip Tutorial &times;</button>
+            </div>
+
+            <!-- Slides -->
+            <div class="tutorial-slides">
+
+                <!-- Slide 0: Welcome -->
+                <div class="tut-slide active" data-slide="0">
+                    <div class="tut-emoji">🚀</div>
+                    <h2 class="tut-title">Welcome to Rocket DL!</h2>
+                    <p class="tut-desc">Your blazing-fast, all-in-one download engine. Let's take a quick tour of everything you can do. It only takes a minute!</p>
+                    <div class="tut-tabs-preview">
+                        <span class="tut-tab-chip">📥 Downloads</span>
+                        <span class="tut-tab-chip">🎨 Customize</span>
+                        <span class="tut-tab-chip">📜 History</span>
+                        <span class="tut-tab-chip">ℹ️ About</span>
+                    </div>
+                </div>
+
+                <!-- Slide 1: Downloads -->
+                <div class="tut-slide" data-slide="1">
+                    <div class="tut-emoji">📥</div>
+                    <h2 class="tut-title">Downloads Tab</h2>
+                    <p class="tut-desc">This is mission control. Paste your URLs, reorder the queue, and hit <strong>Lift off</strong>.</p>
+                    <ul class="tut-features">
+                        <li><span class="tut-badge fast">⚡ F*cking Fast</span> Direct link downloads at max speed</li>
+                        <li><span class="tut-badge yt">▶ YouTube</span> Single videos in up to 4K / 60fps</li>
+                        <li><span class="tut-badge yt">▶ YouTube Playlists</span> Download entire playlists in one go</li>
+                        <li><span class="tut-badge other">🔗 Other Links</span> Any direct download URL supported</li>
+                    </ul>
+                    <div class="tut-coming-soon">🔜 Insta &amp; FB support coming in upcoming updates!</div>
+                </div>
+
+                <!-- Slide 2: Customize -->
+                <div class="tut-slide" data-slide="2">
+                    <div class="tut-emoji">🎨</div>
+                    <h2 class="tut-title">Customize Tab</h2>
+                    <p class="tut-desc">Make Rocket DL truly yours.</p>
+                    <ul class="tut-features">
+                        <li>🌈 Pick your <strong>primary accent color</strong></li>
+                        <li>🌗 Switch between <strong>Light / Dark</strong> themes</li>
+                        <li>🌍 Change the <strong>UI language</strong> (11 supported)</li>
+                        <li>🎵 Set <strong>background music</strong> &amp; startup volume</li>
+                        <li>📁 Choose your default <strong>download folder</strong></li>
+                    </ul>
+                </div>
+
+                <!-- Slide 3: History / Log -->
+                <div class="tut-slide" data-slide="3">
+                    <div class="tut-emoji">📜</div>
+                    <h2 class="tut-title">History &amp; System Log</h2>
+                    <p class="tut-desc">Keep tabs on every mission.</p>
+                    <ul class="tut-features">
+                        <li>🕑 <strong>History</strong> — Browse all past downloads with timestamps</li>
+                        <li>🖥️ <strong>System Log</strong> — Live engine output &amp; error diagnostics</li>
+                        <li>🗑️ Clear history or console with one click</li>
+                    </ul>
+                </div>
+
+                <!-- Slide 4: About / Special Thanks -->
+                <div class="tut-slide" data-slide="4">
+                    <div class="tut-emoji">❤️</div>
+                    <h2 class="tut-title">About &amp; Special Thanks</h2>
+                    <p class="tut-desc">Learn more about the app and the people who made it possible.</p>
+                    <ul class="tut-features">
+                        <li>ℹ️ <strong>About</strong> — App version, feature summary &amp; developer links</li>
+                        <li>💌 <strong>Suggestions</strong> — Drop us a message at <em>curator.rocketdl@gmail.com</em></li>
+                        <li>🏆 <strong>Special Thanks</strong> — The crew behind the scenes</li>
+                    </ul>
+                    <p class="tut-desc" style="margin-top:16px;">You're all set — ready for lift off? 🚀</p>
+                </div>
+
+            </div><!-- /.tutorial-slides -->
+
+            <!-- Footer: progress dots + nav buttons -->
+            <div class="tutorial-footer">
+                <div class="tut-dots" id="tut-dots">
+                    <span class="tut-dot active" data-dot="0"></span>
+                    <span class="tut-dot" data-dot="1"></span>
+                    <span class="tut-dot" data-dot="2"></span>
+                    <span class="tut-dot" data-dot="3"></span>
+                    <span class="tut-dot" data-dot="4"></span>
+                </div>
+                <div class="tut-nav">
+                    <button id="tut-prev" class="btn btn-secondary" disabled>← Back</button>
+                    <button id="tut-next" class="btn btn-primary">Next →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ===== End Tutorial Overlay ===== -->
+
+    <script src="main.js"></script>
+</body>
+</html>

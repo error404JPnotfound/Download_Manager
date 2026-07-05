@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Rocket DL
+Comment=Premium Download Manager with PyWebView GUI
+Exec=/usr/bin/rocketdl
+Icon=rocketdl
+Terminal=false
+Categories=Network;Utility;
+StartupNotify=true

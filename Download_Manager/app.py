@@ -968,6 +968,7 @@ class Api:
     def check_requirements(self):
         import zipfile
         import shutil
+        import threading
         
         ffmpeg_exe = CONFIG_DIR / "ffmpeg.exe"
         ffprobe_exe = CONFIG_DIR / "ffprobe.exe"
@@ -975,41 +976,44 @@ class Api:
         if ffmpeg_exe.exists() and ffprobe_exe.exists():
             return {"status": "ok"}
             
-        run_js("js_update_splash_status", "Downloading required video engines (0%)...")
-        
-        try:
-            zip_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-            zip_path = CONFIG_DIR / "ffmpeg.zip"
-            
-            last_percent = -1
-            def reporthook(count, block_size, total_size):
-                nonlocal last_percent
-                if total_size > 0:
-                    percent = int((count * block_size * 100) / total_size)
-                    if percent > 100: percent = 100
-                    if percent > last_percent:
-                        run_js("js_update_splash_status", f"Downloading required video engines ({percent}%)...")
-                        last_percent = percent
-                        
-            urllib.request.urlretrieve(zip_url, zip_path, reporthook)
-            
-            run_js("js_update_splash_status", "Extracting engines... Please wait.")
-            
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                for file_info in zip_ref.infolist():
-                    if file_info.filename.endswith('ffmpeg.exe'):
-                        file_info.filename = 'ffmpeg.exe'
-                        zip_ref.extract(file_info, path=CONFIG_DIR)
-                    elif file_info.filename.endswith('ffprobe.exe'):
-                        file_info.filename = 'ffprobe.exe'
-                        zip_ref.extract(file_info, path=CONFIG_DIR)
-                        
-            # Clean up
-            zip_path.unlink(missing_ok=True)
-            return {"status": "ok"}
-            
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        def downloader_thread():
+            run_js("js_update_splash_status", "Downloading required video engines (0%)...")
+            try:
+                zip_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+                zip_path = CONFIG_DIR / "ffmpeg.zip"
+                
+                last_percent = -1
+                def reporthook(count, block_size, total_size):
+                    nonlocal last_percent
+                    if total_size > 0:
+                        percent = int((count * block_size * 100) / total_size)
+                        if percent > 100: percent = 100
+                        if percent > last_percent:
+                            run_js("js_update_splash_status", f"Downloading required video engines ({percent}%)...")
+                            last_percent = percent
+                            
+                urllib.request.urlretrieve(zip_url, zip_path, reporthook)
+                
+                run_js("js_update_splash_status", "Extracting engines... Please wait.")
+                
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    for file_info in zip_ref.infolist():
+                        if file_info.filename.endswith('ffmpeg.exe'):
+                            file_info.filename = 'ffmpeg.exe'
+                            zip_ref.extract(file_info, path=CONFIG_DIR)
+                        elif file_info.filename.endswith('ffprobe.exe'):
+                            file_info.filename = 'ffprobe.exe'
+                            zip_ref.extract(file_info, path=CONFIG_DIR)
+                            
+                # Clean up
+                zip_path.unlink(missing_ok=True)
+                run_js("js_on_requirements_done")
+            except Exception as e:
+                run_js("js_log", "Error", f"Failed to download ffmpeg: {e}")
+                run_js("js_on_requirements_done")
+                
+        threading.Thread(target=downloader_thread, daemon=True).start()
+        return {"status": "downloading"}
 
     def start_downloads(self, urls, headless):
         global download_thread, is_downloading
@@ -1205,38 +1209,7 @@ if __name__ == '__main__':
     # Disable automatic DevTools popup in debug mode
     webview.settings['OPEN_DEVTOOLS_IN_DEBUG'] = False
 
-    # Create desktop shortcut on first launch
-    try:
-        cfg = load_config()
-        if not cfg.get("shortcut_created", False):
-            if sys.platform == 'win32':
-                import subprocess
-                if getattr(sys, 'frozen', False):
-                    exe_path = Path(sys.executable).resolve()
-                else:
-                    exe_path = Path(sys.argv[0]).resolve()
-                
-                desktop = Path(os.environ["USERPROFILE"]) / "Desktop"
-                shortcut_path = desktop / "Rocket DL.lnk"
-                
-                icon_path = Path(os.path.dirname(exe_path)) / "RocketDL.ico"
-                if not icon_path.exists():
-                    icon_path = exe_path
-                    
-                ps_script = f"""
-                $WshShell = New-Object -ComObject WScript.Shell
-                $Shortcut = $WshShell.CreateShortcut('{shortcut_path}')
-                $Shortcut.TargetPath = '{exe_path}'
-                $Shortcut.WorkingDirectory = '{exe_path.parent}'
-                $Shortcut.IconLocation = '{icon_path}'
-                $Shortcut.Save()
-                """
-                subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, check=True)
-                print("Desktop shortcut created successfully!", flush=True)
-            cfg["shortcut_created"] = True
-            save_config(cfg)
-    except Exception as e:
-        print(f"Failed to create desktop shortcut: {e}", flush=True)
+
 
     # Initialize and start native PyWebView window
     window_instance = webview.create_window(

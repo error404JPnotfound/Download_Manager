@@ -10,12 +10,15 @@ import urllib.parse
 import webview
 import nodriver as uc
 from nodriver.cdp import browser as cdp_browser
+import hashlib
 
 # Resolve the web directory path (crucial for PyInstaller packaging)
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     web_dir = os.path.join(sys._MEIPASS, 'web')
+    base_dir = sys._MEIPASS
 else:
     web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
+    base_dir = os.path.dirname(os.path.abspath(__file__))
 
 index_url = Path(os.path.join(web_dir, 'index.html')).resolve().as_uri()
 
@@ -174,7 +177,7 @@ async def on_download_progress(event: cdp_browser.DownloadProgress):
 
 def is_direct_link(url):
     try:
-        # 1. Quick extension check
+        # 1. Quick extension check on path
         parsed = urllib.parse.urlparse(url)
         path = parsed.path.lower()
         direct_extensions = (
@@ -187,12 +190,21 @@ def is_direct_link(url):
         )
         has_direct_ext = any(path.endswith(ext) for ext in direct_extensions)
         
-        # 2. Check Content-Type via HEAD request to prevent downloading HTML pages
+        # 2. Check query string for filename parameter with direct extension (common in signed S3/R2 URLs)
+        query = parsed.query.lower()
+        if 'filename' in query:
+            if any(ext in query for ext in direct_extensions):
+                return True
+        
+        # 3. Check Content-Type via GET request with Range: bytes=0-0 to support signed URLs
         try:
             req = urllib.request.Request(
                 url,
-                method='HEAD',
-                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+                method='GET',
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Range': 'bytes=0-0'
+                }
             )
             with urllib.request.urlopen(req, timeout=4) as resp:
                 content_type = resp.headers.get('Content-Type', '').lower()
@@ -201,8 +213,7 @@ def is_direct_link(url):
                         return False
                     return True
         except Exception:
-            # If the HEAD request fails (e.g. 405 Method Not Allowed or 403 Forbidden), 
-            # fall back to the quick extension check.
+            # If the request fails, fall back to the quick extension check
             if has_direct_ext:
                 return True
     except Exception:
@@ -210,75 +221,117 @@ def is_direct_link(url):
     return False
 
 async def download_direct_file(url, download_dir, progress_callback, log_callback):
-    global is_downloading
+    global is_downloading, is_paused
+    import hashlib
     try:
-        log_callback("System", "Direct link detected. Initializing fast HTTP download...")
+        # Create a unique temp file path based on URL hash to persist state reliably
+        url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()
+        temp_dest = Path(download_dir) / f".rocket_{url_hash}.tmp"
         
+        start_bytes = 0
+        is_resume = False
+        if temp_dest.exists():
+            start_bytes = temp_dest.stat().st_size
+            is_resume = True
+            log_callback("System", f"Resuming download from byte {start_bytes}...")
+        else:
+            log_callback("System", "Direct link detected. Initializing fast HTTP download...")
+
         req = urllib.request.Request(
             url,
             headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
         )
-        
+        if start_bytes > 0:
+            req.add_header('Range', f'bytes={start_bytes}-')
+
         loop = asyncio.get_event_loop()
         
         def blocking_download():
-            global is_downloading
-            with urllib.request.urlopen(req, timeout=20) as response:
-                # Prevent downloading HTML pages (e.g. redirected login or error pages)
-                content_type = response.headers.get('Content-Type', '').lower()
-                if 'text/html' in content_type:
-                    raise ValueError("Target URL returned an HTML webpage instead of a binary file.")
+            global is_downloading, is_paused
+            nonlocal is_resume, start_bytes
+            try:
+                # Open request
+                # To handle 206 Partial Content or 200 OK correctly:
+                # urllib might raise HTTPError 416 if the range is invalid/fully completed
+                try:
+                    ctx = urllib.request.urlopen(req, timeout=20)
+                except Exception as he:
+                    if is_resume:
+                        log_callback("Worker", f"Range request failed ({str(he)}). Re-fetching download from scratch...")
+                        if req.has_header('Range'):
+                            req.remove_header('Range')
+                        is_resume = False
+                        start_bytes = 0
+                        ctx = urllib.request.urlopen(req, timeout=20)
+                    else:
+                        raise he
                 
-                filename = "downloaded_file"
-                content_disposition = response.headers.get('Content-Disposition', '')
-                if 'filename=' in content_disposition:
-                    parts = content_disposition.split('filename=')
-                    if len(parts) > 1:
-                        filename = parts[1].strip('\'" ')
-                else:
-                    parsed = urllib.parse.urlparse(url)
-                    guessed = os.path.basename(parsed.path)
-                    if guessed:
-                        filename = guessed
-                        
-                dest_path = Path(download_dir) / filename
+                with ctx as response:
+                    content_type = response.headers.get('Content-Type', '').lower()
+                    if 'text/html' in content_type:
+                        raise ValueError("Target URL returned an HTML webpage instead of a binary file.")
+                    
+                    status_code = response.getcode()
+                    mode = 'ab' if (status_code == 206 and is_resume) else 'wb'
+                    
+                    if mode == 'wb':
+                        received_bytes = 0
+                        total_bytes = int(response.headers.get('Content-Length', 0))
+                    else:
+                        received_bytes = start_bytes
+                        total_bytes = int(response.headers.get('Content-Length', 0)) + start_bytes
+                    
+                    # Resolve final filename
+                    filename = "downloaded_file"
+                    content_disposition = response.headers.get('Content-Disposition', '')
+                    if 'filename=' in content_disposition:
+                        parts = content_disposition.split('filename=')
+                        if len(parts) > 1:
+                            filename = parts[1].strip('\'" ')
+                    else:
+                        parsed = urllib.parse.urlparse(url)
+                        guessed = os.path.basename(parsed.path)
+                        if guessed:
+                            filename = guessed
+                    
+                    dest_path = Path(download_dir) / filename
+                    
+                    log_callback("Worker", f"Saving file as: {filename}")
+                    
+                    with open(temp_dest, mode) as out_file:
+                        while is_downloading:
+                            chunk = response.read(1024 * 64)
+                            if not chunk:
+                                break
+                            out_file.write(chunk)
+                            received_bytes += len(chunk)
+                            
+                            loop.call_soon_threadsafe(
+                                progress_callback,
+                                received_bytes,
+                                total_bytes,
+                                'downloading',
+                                filename
+                            )
+                
+                # Check outcome
+                if not is_downloading:
+                    if temp_dest.exists():
+                        temp_dest.unlink(missing_ok=True)
+                    raise InterruptedError("Cancelled by user")
+                
+                # If completed successfully, rename it
+                # Deduplicate destination path
                 base_name = dest_path.stem
                 suffix = dest_path.suffix
                 counter = 1
                 while dest_path.exists():
                     dest_path = Path(download_dir) / f"{base_name}_{counter}{suffix}"
                     counter += 1
-                    
-                total_bytes = int(response.headers.get('Content-Length', 0))
-                log_callback("Worker", f"Saving file as: {dest_path.name}")
                 
-                received_bytes = 0
-                temp_dest = dest_path.with_suffix(dest_path.suffix + '.tmp')
-                
-                with open(temp_dest, 'wb') as out_file:
-                    while is_downloading:
-                        chunk = response.read(1024 * 64)
-                        if not chunk:
-                            break
-                        out_file.write(chunk)
-                        received_bytes += len(chunk)
-                        
-                        loop.call_soon_threadsafe(
-                            progress_callback,
-                            received_bytes,
-                            total_bytes,
-                            'downloading',
-                            dest_path.name
-                        )
-                
-                if not is_downloading:
-                    if temp_dest.exists():
-                        temp_dest.unlink(missing_ok=True)
-                    raise InterruptedError("Cancelled by user")
-                    
                 if temp_dest.exists():
                     temp_dest.rename(dest_path)
-                    
+                
                 loop.call_soon_threadsafe(
                     progress_callback,
                     total_bytes,
@@ -288,8 +341,11 @@ async def download_direct_file(url, download_dir, progress_callback, log_callbac
                 )
                 return dest_path.name
 
-        filename = await loop.run_in_executor(None, blocking_download)
-        log_callback("System", f"Direct download finished: {filename}")
+            except Exception as e:
+                raise e
+
+        result = await loop.run_in_executor(None, blocking_download)
+        log_callback("System", f"Direct download finished: {result}")
         return True
     except Exception as e:
         log_callback("Error", f"Direct download failed: {str(e)}")
@@ -315,7 +371,7 @@ def run_js(func, *args):
         window_instance.evaluate_js(js_code)
 
 async def download_worker(urls, headless):
-    global is_downloading, browser_instance, DOWNLOAD_DIR
+    global is_downloading, browser_instance, DOWNLOAD_DIR, is_paused
     is_downloading = True
     
     # Notify JS that downloads started
@@ -354,21 +410,19 @@ async def download_worker(urls, headless):
             )
         )
         
-        for index, url in enumerate(urls):
-            if not is_downloading:
-                run_js("js_log", "System", "Download process stopped by user.")
-                break
-                
+        index = 0
+        while index < len(urls) and is_downloading:
             # Handle paused state
-            global is_paused
             while is_paused and is_downloading:
                 await asyncio.sleep(0.5)
                 
             if not is_downloading:
                 break
                 
+            url = urls[index]
             url_clean = url.strip()
             if not url_clean:
+                index += 1
                 continue
                 
             global active_url, last_percent, download_speed_info
@@ -383,245 +437,267 @@ async def download_worker(urls, headless):
             run_js("js_update_active_url", url_clean, "Analyzing link...")
             run_js("js_log", "Worker", f"Processing url {index + 1}/{len(urls)}: {url_clean}")
             
-            # YouTube Link detection in main queue
-            if "youtube.com" in url_clean or "youtu.be" in url_clean:
-                run_js("js_log", "System", "YouTube link detected in queue. Redirecting to yt-dlp module...")
-                run_js("js_update_active_url", url_clean, "Downloading via yt-dlp...")
-                
-                # Fetch quality preference or default to Best
-                cfg = load_config()
-                quality_preference = cfg.get("yt_quality_default", "1")
-                
-                # Define progress wrapper to map to GUI downloader progress
-                last_js_update = [0.0]
-                last_video_id = [None]
-                
-                def ytdlp_queue_progress(d):
-                    if not is_downloading:
-                        raise RuntimeError("Cancelled by user")
-                        
-                    # Extract active video title and playlist parameters
-                    info_dict = d.get('info_dict', {})
-                    video_id = info_dict.get('id')
-                    video_title = info_dict.get('title', 'YouTube Video')
-                    playlist_index = info_dict.get('playlist_index')
-                    playlist_count = info_dict.get('playlist_count')
-                    
-                    # Update current video filename dynamically if it changes
-                    if video_id and video_id != last_video_id[0]:
-                        last_video_id[0] = video_id
-                        status_msg = "Downloading..."
-                        if playlist_index is not None:
-                            total_str = f"/{playlist_count}" if playlist_count else ""
-                            status_msg = f"Downloading ({playlist_index}{total_str})..."
-                        run_js("js_update_active_url", url_clean, status_msg, video_title)
-                        run_js("js_log", "Worker", f"Starting playlist video: {video_title}")
-                        
-                    if d['status'] == 'downloading':
-                        downloaded = d.get('downloaded_bytes', 0)
-                        total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
-                        speed = d.get('speed', 0.0)
-                        
-                        percent = 0.0
-                        if total > 0:
-                            percent = (downloaded / total) * 100
-                            
-                        now = time.time()
-                        is_final = percent >= 100.0 or downloaded == total
-                        if is_final or (now - last_js_update[0] >= 0.75):
-                            # Call JS progress update
-                            run_js("js_update_download_progress", url_clean, "downloading", round(percent, 1), speed, downloaded, total)
-                            last_js_update[0] = now
-                            
-                # Match filter hook to abort early on playlist items
-                def ytdlp_match_filter(info_dict, *, incomplete):
-                    if not is_downloading:
-                        raise RuntimeError("Cancelled by user")
-                    return None
-                
-                # Configure options
-                ydl_opts = {
-                    'outtmpl': os.path.join(str(DOWNLOAD_DIR), '%(playlist_title&{}|)s', '%(playlist_index&{:03d} - |)s%(title)s.%(ext)s'),
-                    'progress_hooks': [ytdlp_queue_progress],
-                    'match_filter': ytdlp_match_filter,
-                    'quiet': True,
-                    'no_warnings': True,
-                    'ignoreerrors': True,
-                }
-                
-                # Set format based on quality_preference
-                if quality_preference == '1':
-                    ydl_opts['format'] = 'bestvideo+bestaudio/best'
-                    ydl_opts['merge_output_format'] = 'mp4'
-                elif quality_preference == '2':
-                    ydl_opts['format'] = 'bestvideo[height<=1080][fps<=60]+bestaudio/best[height<=1080]'
-                    ydl_opts['merge_output_format'] = 'mp4'
-                elif quality_preference == '3':
-                    ydl_opts['format'] = 'bestvideo[height<=1080][fps<=30]+bestaudio/best[height<=1080]'
-                    ydl_opts['merge_output_format'] = 'mp4'
-                elif quality_preference == '4':
-                    ydl_opts['format'] = 'bestvideo[height<=720][fps<=60]+bestaudio/best[height<=720]'
-                    ydl_opts['merge_output_format'] = 'mp4'
-                elif quality_preference == '5':
-                    ydl_opts['format'] = 'bestvideo[height<=720][fps<=30]+bestaudio/best[height<=720]'
-                    ydl_opts['merge_output_format'] = 'mp4'
-                elif quality_preference == '6':
-                    ydl_opts['format'] = 'bestaudio/best'
-                    ydl_opts['postprocessors'] = [{
-                        'key': 'FFmpegExtractAudio',
-                        'preferredcodec': 'mp3',
-                        'preferredquality': '192',
-                    }]
-                else:
-                    ydl_opts['format'] = 'bestvideo+bestaudio/best'
-                    ydl_opts['merge_output_format'] = 'mp4'
-                
-                try:
-                    import yt_dlp
-                    # Run extraction with flat extraction first for speed
-                    ydl_opts_extract = ydl_opts.copy()
-                    ydl_opts_extract['extract_flat'] = True
-                    with yt_dlp.YoutubeDL(ydl_opts_extract) as ydl:
-                        info = ydl.extract_info(url_clean, download=False)
-                        resolved_title = info.get('title', 'YouTube Video')
-                    
-                    run_js("js_update_active_url", url_clean, "Downloading...", resolved_title)
-                    
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        ydl.download([url_clean])
-                        
-                    run_js("js_update_download_progress", url_clean, "completed", 100, 0, 100, 100)
-                    add_history_record(url_clean, resolved_title, 'Completed')
-                except Exception as ytdlp_err:
-                    err_msg = str(ytdlp_err)
-                    if "Cancelled by user" in err_msg:
-                        run_js("js_update_active_url", url_clean, "Cancelled")
-                        add_history_record(url_clean, "YouTube Video (Cancelled)", 'Cancelled')
-                    else:
-                        run_js("js_log", "Error", f"yt-dlp queue download failed: {err_msg}")
-                        run_js("js_update_active_url", url_clean, "Failed")
-                        add_history_record(url_clean, "YouTube Video (Failed)", 'Cancelled')
-                
-                # Skip normal direct/browser download since we processed via yt-dlp
-                continue
-
-            # Direct link fast download detection
-            if is_direct_link(url_clean):
-                def direct_progress(received, total, state, filename):
-                    class DummyEvent:
-                        def __init__(self, rec, tot, st):
-                            self.received_bytes = rec
-                            self.total_bytes = tot
-                            self.state = st
-                    
-                    if filename:
-                        download_speed_info[url_clean]['filename'] = filename
-                        run_js("js_update_active_url", url_clean, state.capitalize(), filename)
-                    
-                    event = DummyEvent(received, total, state)
-                    # Run on_download_progress asynchronously on the event loop
-                    asyncio.run_coroutine_threadsafe(on_download_progress(event), asyncio.get_event_loop())
-                
-                success = await download_direct_file(url_clean, DOWNLOAD_DIR, direct_progress, run_js)
-                if success:
-                    final_filename = download_speed_info[url_clean].get('filename', 'Direct File')
-                    add_history_record(url_clean, final_filename, 'Completed')
-                    continue
-                else:
-                    run_js("js_log", "Worker", "Direct download failed. Falling back to browser automation mode...")
-
+            paused_this_turn = False
+            
             try:
-                # Load page
-                await page.get(url_clean)
-                
-                if not is_downloading:
-                    run_js("js_log", "System", "Download process stopped by user.")
-                    break
+                # YouTube Link detection in main queue
+                if "youtube.com" in url_clean or "youtu.be" in url_clean:
+                    run_js("js_log", "System", "YouTube link detected in queue. Redirecting to yt-dlp module...")
+                    run_js("js_update_active_url", url_clean, "Downloading via yt-dlp...")
                     
-                run_js("js_update_active_url", url_clean, "Page loaded, waiting for popup...")
-                run_js("js_log", "Worker", "Navigated to page. Searching for 'DOWNLOAD' button...")
-                
-                # Locate the button by text
-                download_btn = await page.find("DOWNLOAD", best_match=True, timeout=15)
-                if not download_btn:
-                    download_btn = await page.find("Download", best_match=True, timeout=5)
+                    # Fetch quality preference or default to Best
+                    cfg = load_config()
+                    quality_preference = cfg.get("yt_quality_default", "1")
                     
-                if not download_btn:
-                    run_js("js_log", "Error", "Could not find a 'DOWNLOAD' button on the page.")
-                    run_js("js_update_active_url", url_clean, "Failed: Button not found")
-                    continue
-                
-                # Save current tabs before clicking to close ad popup later
-                old_tabs = list(browser.tabs)
-                
-                # First click (usually triggers popup ad)
-                await download_btn.click()
-                
-                # Wait for the popup to open
-                await page.sleep(2)
-                
-                # Find and close any new popup tabs
-                new_tabs = [t for t in browser.tabs if t not in old_tabs]
-                for tab in new_tabs:
+                    # Define progress wrapper to map to GUI downloader progress
+                    last_js_update = [0.0]
+                    last_video_id = [None]
+                    
+                    def ytdlp_queue_progress(d):
+                        global is_paused
+                        if is_paused:
+                            raise RuntimeError("Paused by user")
+                        if not is_downloading:
+                            raise RuntimeError("Cancelled by user")
+                            
+                        # Extract active video title and playlist parameters
+                        info_dict = d.get('info_dict', {})
+                        video_id = info_dict.get('id')
+                        video_title = info_dict.get('title', 'YouTube Video')
+                        playlist_index = info_dict.get('playlist_index')
+                        playlist_count = info_dict.get('playlist_count')
+                        
+                        # Update current video filename dynamically if it changes
+                        if video_id and video_id != last_video_id[0]:
+                            last_video_id[0] = video_id
+                            status_msg = "Downloading..."
+                            if playlist_index is not None:
+                                total_str = f"/{playlist_count}" if playlist_count else ""
+                                status_msg = f"Downloading ({playlist_index}{total_str})..."
+                            run_js("js_update_active_url", url_clean, status_msg, video_title)
+                            run_js("js_log", "Worker", f"Starting playlist video: {video_title}")
+                            
+                        if d['status'] == 'downloading':
+                            downloaded = d.get('downloaded_bytes', 0)
+                            total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+                            speed = d.get('speed', 0.0)
+                            
+                            percent = 0.0
+                            if total > 0:
+                                percent = (downloaded / total) * 100
+                                
+                            now = time.time()
+                            is_final = percent >= 100.0 or downloaded == total
+                            if is_final or (now - last_js_update[0] >= 0.75):
+                                # Call JS progress update
+                                run_js("js_update_download_progress", url_clean, "downloading", round(percent, 1), speed, downloaded, total)
+                                last_js_update[0] = now
+                                
+                    # Match filter hook to abort early on playlist items
+                    def ytdlp_match_filter(info_dict, *, incomplete):
+                        global is_paused
+                        if is_paused:
+                            raise RuntimeError("Paused by user")
+                        if not is_downloading:
+                            raise RuntimeError("Cancelled by user")
+                        return None
+                    
+                    # Configure options
+                    ydl_opts = {
+                        'outtmpl': os.path.join(str(DOWNLOAD_DIR), '%(playlist_title&{}|)s', '%(playlist_index&{:03d} - |)s%(title)s.%(ext)s'),
+                        'progress_hooks': [ytdlp_queue_progress],
+                        'match_filter': ytdlp_match_filter,
+                        'quiet': True,
+                        'no_warnings': True,
+                        'ffmpeg_location': base_dir,
+                    }
+                    
+                    # Set format based on quality_preference
+                    if quality_preference == '1':
+                        ydl_opts['format'] = 'bestvideo+bestaudio/best'
+                        ydl_opts['merge_output_format'] = 'mp4'
+                    elif quality_preference == '2':
+                        ydl_opts['format'] = 'bestvideo[height<=1080][fps<=60]+bestaudio/best[height<=1080]'
+                        ydl_opts['merge_output_format'] = 'mp4'
+                    elif quality_preference == '3':
+                        ydl_opts['format'] = 'bestvideo[height<=1080][fps<=30]+bestaudio/best[height<=1080]'
+                        ydl_opts['merge_output_format'] = 'mp4'
+                    elif quality_preference == '4':
+                        ydl_opts['format'] = 'bestvideo[height<=720][fps<=60]+bestaudio/best[height<=720]'
+                        ydl_opts['merge_output_format'] = 'mp4'
+                    elif quality_preference == '5':
+                        ydl_opts['format'] = 'bestvideo[height<=720][fps<=30]+bestaudio/best[height<=720]'
+                        ydl_opts['merge_output_format'] = 'mp4'
+                    elif quality_preference == '6':
+                        ydl_opts['format'] = 'bestaudio/best'
+                        ydl_opts['postprocessors'] = [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }]
+                    else:
+                        ydl_opts['format'] = 'bestvideo+bestaudio/best'
+                        ydl_opts['merge_output_format'] = 'mp4'
+                    
+                    is_ytdlp_paused = False
                     try:
-                        run_js("js_log", "Worker", "Closing popup ad tab...")
-                        await tab.close()
-                    except Exception as tab_err:
-                        run_js("js_log", "Worker", f"Note: Popup tab already closed/destroyed ({tab_err})")
-                    
-                if not is_downloading:
-                    run_js("js_log", "System", "Download process stopped by user.")
-                    break
-                    
-                run_js("js_log", "Worker", "Popup ad closed. Triggering actual download...")
-                run_js("js_update_active_url", url_clean, "Popup closed. Fetching file...")
-                
-                # Search for download button again for the second click
-                download_btn2 = await page.find("DOWNLOAD", best_match=True, timeout=10)
-                if not download_btn2:
-                    download_btn2 = await page.find("Download", best_match=True, timeout=5)
-                if not download_btn2:
-                    download_btn2 = download_btn
-                    
-                # Track downloads directory to see when file completes
-                files_before = set(DOWNLOAD_DIR.iterdir())
-                
-                # Click the download button again to trigger actual file download
-                await download_btn2.click()
-                
-                # Monitor files in the downloads directory
-                filename = None
-                run_js("js_update_active_url", url_clean, "Downloading...")
-                
-                for attempt in range(360):  # max 360 seconds (6 minutes)
-                    await page.sleep(1)
-                    if not is_downloading:
-                        break
+                        import yt_dlp
+                        # Run extraction with flat extraction first for speed
+                        ydl_opts_extract = ydl_opts.copy()
+                        ydl_opts_extract['extract_flat'] = True
+                        with yt_dlp.YoutubeDL(ydl_opts_extract) as ydl:
+                            info = ydl.extract_info(url_clean, download=False)
+                            resolved_title = info.get('title', 'YouTube Video')
                         
-                    files_now = set(DOWNLOAD_DIR.iterdir())
-                    new_files = files_now - files_before
-                    
-                    # Filter out temporary files
-                    active_downloads = [f for f in new_files if f.suffix in ('.crdownload', '.tmp')]
-                    completed_downloads = [f for f in new_files if f.suffix not in ('.crdownload', '.tmp')]
-                    
-                    if completed_downloads and not active_downloads:
-                        filename = completed_downloads[0].name
-                        break
+                        run_js("js_update_active_url", url_clean, "Downloading...", resolved_title)
                         
-                if filename:
-                    run_js("js_log", "Worker", f"Successfully saved download: {filename}")
-                    run_js("js_update_active_url", url_clean, "Completed", filename)
-                    add_history_record(url_clean, filename, "Completed")
-                else:
+                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                            ydl.download([url_clean])
+                            
+                        run_js("js_update_download_progress", url_clean, "completed", 100, 0, 100, 100)
+                        add_history_record(url_clean, resolved_title, 'Completed')
+                    except Exception as ytdlp_err:
+                        err_msg = str(ytdlp_err)
+                        if "Paused by user" in err_msg:
+                            is_ytdlp_paused = True
+                            run_js("js_update_active_url", url_clean, "Paused", resolved_title or "YouTube Video")
+                        elif "Cancelled by user" in err_msg:
+                            run_js("js_update_active_url", url_clean, "Cancelled")
+                            add_history_record(url_clean, "YouTube Video (Cancelled)", 'Cancelled')
+                        else:
+                            run_js("js_log", "Error", f"yt-dlp queue download failed: {err_msg}")
+                            run_js("js_update_active_url", url_clean, "Failed")
+                            add_history_record(url_clean, "YouTube Video (Failed)", 'Cancelled')
+                    
+                    if is_ytdlp_paused:
+                        paused_this_turn = True
+                        continue
+                    
+                    continue
+    
+                # Direct link fast download detection
+                url_hash = hashlib.md5(url_clean.encode('utf-8')).hexdigest()
+                has_temp_file = (DOWNLOAD_DIR / f".rocket_{url_hash}.tmp").exists()
+                
+                if has_temp_file or is_direct_link(url_clean):
+                    def direct_progress(received, total, state, filename):
+                        class DummyEvent:
+                            def __init__(self, rec, tot, st):
+                                self.received_bytes = rec
+                                self.total_bytes = tot
+                                self.state = st
+                        
+                        if filename:
+                            download_speed_info[url_clean]['filename'] = filename
+                            run_js("js_update_active_url", url_clean, state.capitalize(), filename)
+                        
+                        event = DummyEvent(received, total, state)
+                        # Run on_download_progress asynchronously on the event loop
+                        asyncio.run_coroutine_threadsafe(on_download_progress(event), asyncio.get_event_loop())
+                    
+                    success = await download_direct_file(url_clean, DOWNLOAD_DIR, direct_progress, run_js)
+                    if success == "PAUSED":
+                        paused_this_turn = True
+                        continue
+                    elif success:
+                        final_filename = download_speed_info[url_clean].get('filename', 'Direct File')
+                        add_history_record(url_clean, final_filename, 'Completed')
+                        continue
+                    else:
+                        run_js("js_log", "Worker", "Direct download failed. Falling back to browser automation mode...")
+    
+                if True:
+                    # Load page
+                    await page.get(url_clean)
+                    
                     if not is_downloading:
                         run_js("js_log", "System", "Download process stopped by user.")
-                        add_history_record(url_clean, filename or "Stopped URL", "Cancelled")
-                    else:
-                        run_js("js_log", "Worker", "Download timed out or failed to save file.")
-                        run_js("js_update_active_url", url_clean, "Failed: Timeout")
-                        add_history_record(url_clean, filename or "Timeout URL", "Cancelled")
+                        break
                         
+                    run_js("js_update_active_url", url_clean, "Page loaded, waiting for popup...")
+                    run_js("js_log", "Worker", "Navigated to page. Searching for 'DOWNLOAD' button...")
+                    
+                    # Locate the button by text
+                    download_btn = await page.find("DOWNLOAD", best_match=True, timeout=15)
+                    if not download_btn:
+                        download_btn = await page.find("Download", best_match=True, timeout=5)
+                        
+                    if not download_btn:
+                        run_js("js_log", "Error", "Could not find a 'DOWNLOAD' button on the page.")
+                        run_js("js_update_active_url", url_clean, "Failed: Button not found")
+                        continue
+                    
+                    # Save current tabs before clicking to close ad popup later
+                    old_tabs = list(browser.tabs)
+                    
+                    # First click (usually triggers popup ad)
+                    await download_btn.click()
+                    
+                    # Wait for the popup to open
+                    await page.sleep(2)
+                    
+                    # Find and close any new popup tabs
+                    new_tabs = [t for t in browser.tabs if t not in old_tabs]
+                    for tab in new_tabs:
+                        try:
+                            run_js("js_log", "Worker", "Closing popup ad tab...")
+                            await tab.close()
+                        except Exception as tab_err:
+                            run_js("js_log", "Worker", f"Note: Popup tab already closed/destroyed ({tab_err})")
+                        
+                    if not is_downloading:
+                        run_js("js_log", "System", "Download process stopped by user.")
+                        break
+                        
+                    run_js("js_log", "Worker", "Popup ad closed. Triggering actual download...")
+                    run_js("js_update_active_url", url_clean, "Popup closed. Fetching file...")
+                    
+                    # Search for download button again for the second click
+                    download_btn2 = await page.find("DOWNLOAD", best_match=True, timeout=10)
+                    if not download_btn2:
+                        download_btn2 = await page.find("Download", best_match=True, timeout=5)
+                    if not download_btn2:
+                        download_btn2 = download_btn
+                        
+                    # Track downloads directory to see when file completes
+                    files_before = set(DOWNLOAD_DIR.iterdir())
+                    
+                    # Click the download button again to trigger actual file download
+                    await download_btn2.click()
+                    
+                    # Monitor files in the downloads directory
+                    filename = None
+                    run_js("js_update_active_url", url_clean, "Downloading...")
+                    
+                    for attempt in range(360):  # max 360 seconds (6 minutes)
+                        await page.sleep(1)
+                        if not is_downloading:
+                            break
+                            
+                        files_now = set(DOWNLOAD_DIR.iterdir())
+                        new_files = files_now - files_before
+                        
+                        # Filter out temporary files
+                        active_downloads = [f for f in new_files if f.suffix in ('.crdownload', '.tmp')]
+                        completed_downloads = [f for f in new_files if f.suffix not in ('.crdownload', '.tmp')]
+                        
+                        if completed_downloads and not active_downloads:
+                            filename = completed_downloads[0].name
+                            break
+                            
+                    if filename:
+                        run_js("js_log", "Worker", f"Successfully saved download: {filename}")
+                        run_js("js_update_active_url", url_clean, "Completed", filename)
+                        add_history_record(url_clean, filename, "Completed")
+                    else:
+                        if not is_downloading:
+                            run_js("js_log", "System", "Download process stopped by user.")
+                            add_history_record(url_clean, filename or "Stopped URL", "Cancelled")
+                        else:
+                            run_js("js_log", "Worker", "Download timed out or failed to save file.")
+                            run_js("js_update_active_url", url_clean, "Failed: Timeout")
+                            add_history_record(url_clean, filename or "Timeout URL", "Cancelled")
+                            
             except Exception as e:
                 error_msg = str(e)
                 run_js("js_log", "Error", f"Failed to download {url_clean}: {error_msg}")
@@ -629,6 +705,8 @@ async def download_worker(urls, headless):
                 add_history_record(url_clean, "Error URL", "Cancelled")
             finally:
                 active_url = None
+                if not paused_this_turn:
+                    index += 1
                 
         # Close browser
         try:
@@ -1009,10 +1087,13 @@ class Api:
         global DOWNLOAD_DIR
         try:
             cleaned = []
-            for filepath in DOWNLOAD_DIR.glob("*.crdownload"):
-                if filepath.is_file():
-                    filepath.unlink(missing_ok=True)
-                    cleaned.append(filepath.name)
+            # Clean up chromium temp files, rocket temp files, and generic temp files
+            patterns = ["*.crdownload", ".rocket_*.tmp", "*.tmp"]
+            for pattern in patterns:
+                for filepath in DOWNLOAD_DIR.glob(pattern):
+                    if filepath.is_file():
+                        filepath.unlink(missing_ok=True)
+                        cleaned.append(filepath.name)
             if cleaned:
                 run_js("js_log", "System", f"Cleaned up temporary download files: {', '.join(cleaned)}")
             return "Cleared"
@@ -1049,53 +1130,28 @@ def on_closing():
     global DOWNLOAD_DIR, is_downloading, browser_instance, is_paused
     
     # Check if there are any .crdownload files in the downloads directory
-    has_crfiles = False
-    try:
-        has_crfiles = any(DOWNLOAD_DIR.glob("*.crdownload"))
-    except:
-        pass
-        
-    if has_crfiles:
-        # Show native Windows confirmation box with YES/NO options
-        import ctypes
-        # MB_YESNO = 0x00000004, MB_ICONQUESTION = 0x00000020, MB_TOPMOST = 0x00040000
-        res = ctypes.windll.user32.MessageBoxW(
-            None,
-            "You have unfinished downloads.\n\nClick 'Yes' to delete temporary files and exit.\nClick 'No' to keep temporary files and exit.",
-            "Unfinished Downloads",
-            0x00000004 | 0x00000020 | 0x00040000
-        )
-        
-        # Stop browser first to release locks
-        is_downloading = False
-        is_paused = False
-        if browser_instance:
-            try:
-                browser_instance.stop()
-            except:
-                pass
-                
-        if res == 6: # IDYES (delete files and exit)
-            # Delete files
-            try:
-                for filepath in DOWNLOAD_DIR.glob("*.crdownload"):
-                    if filepath.is_file():
-                        filepath.unlink(missing_ok=True)
-            except:
-                pass
-            return True # Allow close (deletes files)
-        elif res == 7: # IDNO (keep files and exit)
-            return True # Allow close (keeps files)
-            
-    # If no .crdownload files, allow closing immediately
+def on_closing(window_instance):
+    global is_downloading, is_paused, browser_instance, DOWNLOAD_DIR
+    
     is_downloading = False
     is_paused = False
+    
     if browser_instance:
         try:
             browser_instance.stop()
         except:
             pass
-
+            
+    # Delete temporary files: crdownload, part, ytdl, .rocket_*.tmp, *.tmp, *.html
+    patterns = ["*.crdownload", "*.part", "*.ytdl", ".rocket_*.tmp", "*.tmp", "*.html"]
+    for pattern in patterns:
+        try:
+            for filepath in DOWNLOAD_DIR.glob(pattern):
+                if filepath.is_file():
+                    filepath.unlink(missing_ok=True)
+        except:
+            pass
+            
     return True
 
 if __name__ == '__main__':

@@ -146,7 +146,7 @@
                             </button>
                             <button class="btn btn-secondary" id="btn-pause" disabled>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                                <span id="btn-pause-text" data-i18n="btn_pause_queue">Pause Queue</span>
+                                <span id="btn-pause-text" data-i18n="btn_pause_queue">Pause</span>
                             </button>
                             <button class="btn btn-danger" id="btn-stop" disabled>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/></svg>
@@ -458,6 +458,44 @@
             <div class="modal-footer">
                 <button class="btn btn-tertiary" id="btn-modal-cancel" data-i18n="modal_cancel">Cancel</button>
                 <button class="btn btn-danger" id="btn-modal-confirm" data-i18n="modal_stop_yes">Yes, Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fucking Fast Confirm Modal -->
+    <div id="ff-confirm-modal" class="modal-overlay hidden">
+        <div class="modal-card glass-panel fade-in" style="max-width: 440px;">
+            <div class="modal-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff5e5e;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <h3 style="margin: 0; color: #ff5e5e;">Warning: Fucking Fast Links</h3>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 24px; font-size: 0.9rem; color: var(--text-normal); line-height: 1.5;">
+                    You are going to download Fucking fast links which are not able to Pause after they are started, so make sure you are connected to a stable internet
+                </p>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-tertiary" id="btn-ff-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-ff-modal-continue" style="background-color: #ff5e5e; border-color: #ff5e5e;">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- High Speed Confirm Modal -->
+    <div id="hs-confirm-modal" class="modal-overlay hidden">
+        <div class="modal-card glass-panel fade-in" style="max-width: 440px;">
+            <div class="modal-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff5e5e;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <h3 style="margin: 0; color: #ff5e5e;">Warning: High Speed Links</h3>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 24px; font-size: 0.9rem; color: var(--text-normal); line-height: 1.5;">
+                    You are going to download High speed links which are not able to Pause after they are started, so make sure you are connected to a stable internet
+                </p>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-tertiary" id="btn-hs-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-hs-modal-continue" style="background-color: #ff5e5e; border-color: #ff5e5e;">Continue</button>
             </div>
         </div>
     </div>

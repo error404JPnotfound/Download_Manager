@@ -146,8 +146,8 @@ const translations = {
         btn_add_more: "Add More Links",
         drag_to_reorder: "Drag to reorder download sequence",
         btn_start_process: "Lift off",
-        btn_pause_queue: "Pause Queue",
-        btn_resume_queue: "Resume Queue",
+        btn_pause_queue: "Pause",
+        btn_resume_queue: "Resume",
         btn_stop_all: "Abort",
         btn_clear_queue: "Clear Queue",
         download_queue: "Download Queue",
@@ -236,8 +236,8 @@ const translations = {
         btn_add_more: "Añadir más enlaces",
         drag_to_reorder: "Arrastra para reordenar la secuencia de descarga",
         btn_start_process: "Iniciar descarga",
-        btn_pause_queue: "Pausar cola",
-        btn_resume_queue: "Reanudar cola",
+        btn_pause_queue: "Pausar",
+        btn_resume_queue: "Reanudar",
         btn_stop_all: "Detener descargas",
         btn_clear_queue: "Limpiar cola",
         download_queue: "Cola de descargas",
@@ -326,8 +326,8 @@ const translations = {
         btn_add_more: "Ajouter des liens",
         drag_to_reorder: "Glissez pour réorganiser la séquence de téléchargement",
         btn_start_process: "Démarrer le processus",
-        btn_pause_queue: "Mettre en pause",
-        btn_resume_queue: "Reprendre la file",
+        btn_pause_queue: "Pause",
+        btn_resume_queue: "Reprendre",
         btn_stop_all: "Arrêter les téléchargements",
         btn_clear_queue: "Vider la file",
         download_queue: "File de téléchargement",
@@ -416,8 +416,8 @@ const translations = {
         btn_add_more: "Mehr Links hinzufügen",
         drag_to_reorder: "Ziehen, um die Downloadreihenfolge zu ändern",
         btn_start_process: "Abheben",
-        btn_pause_queue: "Warteschlange pausieren",
-        btn_resume_queue: "Warteschlange fortsetzen",
+        btn_pause_queue: "Pause",
+        btn_resume_queue: "Fortsetzen",
         btn_stop_all: "Alle Downloads stoppen",
         btn_clear_queue: "Warteschlange löschen",
         download_queue: "Download-Warteschlange",
@@ -506,8 +506,8 @@ const translations = {
         btn_add_more: "Adicionar Mais Links",
         drag_to_reorder: "Arraste para reordenar a sequência de downloads",
         btn_start_process: "Iniciar Processo",
-        btn_pause_queue: "Pausar Fila",
-        btn_resume_queue: "Retomar Fila",
+        btn_pause_queue: "Pausar",
+        btn_resume_queue: "Retomar",
         btn_stop_all: "Parar Todos Downloads",
         btn_clear_queue: "Limpar Fila",
         download_queue: "Fila de Downloads",
@@ -596,8 +596,8 @@ const translations = {
         btn_add_more: "Добавить еще",
         drag_to_reorder: "Перетащите для изменения порядка",
         btn_start_process: "Начать процесс",
-        btn_pause_queue: "Пауза очереди",
-        btn_resume_queue: "Продолжить очередь",
+        btn_pause_queue: "Пауза",
+        btn_resume_queue: "Продолжить",
         btn_stop_all: "Остановить всё",
         btn_clear_queue: "Очистить очередь",
         download_queue: "Очередь загрузок",
@@ -686,8 +686,8 @@ const translations = {
         btn_add_more: "添加更多链接",
         drag_to_reorder: "拖拽以重新排序下载顺序",
         btn_start_process: "起飞",
-        btn_pause_queue: "暂停队列",
-        btn_resume_queue: "恢复下载",
+        btn_pause_queue: "暂停",
+        btn_resume_queue: "恢复",
         btn_stop_all: "停止所有下载",
         btn_clear_queue: "清空队列",
         download_queue: "下载队列",
@@ -867,7 +867,7 @@ const translations = {
         drag_to_reorder: "드래그하여 다운로드 순서 변경",
         btn_start_process: "다운로드 시작",
         btn_pause_queue: "일시 중지",
-        btn_resume_queue: "다운로드 재개",
+        btn_resume_queue: "재개",
         btn_stop_all: "중단",
         btn_clear_queue: "대기열 비우기",
         download_queue: "다운로드 대기열",
@@ -956,8 +956,8 @@ const translations = {
         btn_add_more: "अधिक लिंक जोड़ें",
         drag_to_reorder: "डाउनलोड क्रम बदलने के लिए खींचें",
         btn_start_process: "लिफ्ट ऑफ",
-        btn_pause_queue: "कतार रोकें",
-        btn_resume_queue: "कतार पुनः चालू करें",
+        btn_pause_queue: "रोकें",
+        btn_resume_queue: "पुनः चालू करें",
         btn_stop_all: "रद्द करें",
         btn_clear_queue: "कतार साफ करें",
         download_queue: "डाउनलोड कतार",
@@ -1046,8 +1046,8 @@ const translations = {
         btn_add_more: "إضافة روابط أخرى",
         drag_to_reorder: "اسحب لإعادة ترتيب تسلسل التحميل",
         btn_start_process: "بدء التحميل",
-        btn_pause_queue: "إيقاف الطابور",
-        btn_resume_queue: "استئناف الطابور",
+        btn_pause_queue: "إيقاف مؤقت",
+        btn_resume_queue: "استئناف",
         btn_stop_all: "إيقاف كل التنزيلات",
         btn_clear_queue: "مسح الطابور",
         download_queue: "طابور التحميل",
@@ -1525,6 +1525,53 @@ async function getPythonApi() {
 // Event Listeners
 
 async function startQueueDownloads(urls) {
+    const hasYoutube = urls.some(url => url.toLowerCase().includes('youtube.com') || url.toLowerCase().includes('youtu.be'));
+    const hasFuckingFast = urls.some(url => url.toLowerCase().includes('fuckingfast'));
+    const hasHighSpeed = urls.some(url => {
+        const lower = url.toLowerCase();
+        return !lower.includes('youtube.com') && !lower.includes('youtu.be') && !lower.includes('fuckingfast');
+    });
+
+    if (hasFuckingFast) {
+        const ffModal = document.getElementById('ff-confirm-modal');
+        ffModal.classList.remove('hidden');
+        const approved = await new Promise((resolve) => {
+            const btnCancel = document.getElementById('btn-ff-modal-cancel');
+            const btnContinue = document.getElementById('btn-ff-modal-continue');
+            const cleanup = () => {
+                btnCancel.removeEventListener('click', onCancel);
+                btnContinue.removeEventListener('click', onContinue);
+            };
+            const onCancel = () => { ffModal.classList.add('hidden'); cleanup(); resolve(false); };
+            const onContinue = () => { ffModal.classList.add('hidden'); cleanup(); resolve(true); };
+            btnCancel.addEventListener('click', onCancel);
+            btnContinue.addEventListener('click', onContinue);
+        });
+        if (!approved) return;
+    }
+
+    if (hasHighSpeed) {
+        const hsModal = document.getElementById('hs-confirm-modal');
+        hsModal.classList.remove('hidden');
+        const approved = await new Promise((resolve) => {
+            const btnCancel = document.getElementById('btn-hs-modal-cancel');
+            const btnContinue = document.getElementById('btn-hs-modal-continue');
+            const cleanup = () => {
+                btnCancel.removeEventListener('click', onCancel);
+                btnContinue.removeEventListener('click', onContinue);
+            };
+            const onCancel = () => { hsModal.classList.add('hidden'); cleanup(); resolve(false); };
+            const onContinue = () => { hsModal.classList.add('hidden'); cleanup(); resolve(true); };
+            btnCancel.addEventListener('click', onCancel);
+            btnContinue.addEventListener('click', onContinue);
+        });
+        if (!approved) return;
+    }
+
+    await executeStartDownloads(urls);
+}
+
+async function executeStartDownloads(urls) {
     showQueuePanel();
     js_log("System", `Starting downloads queue of ${urls.length} items...`);
     try {
@@ -1575,7 +1622,7 @@ btnYtModalConfirm.addEventListener('click', async () => {
 btnPause.addEventListener('click', async () => {
     try {
         const api = await getPythonApi();
-        if (btnPauseText.textContent === "Pause Queue") {
+        if (window.engineState !== 'paused') {
             js_log("System", "Requesting engine to pause...");
             await api.pause_downloads();
         } else {
@@ -1629,6 +1676,7 @@ btnModalConfirm.addEventListener('click', async () => {
 
 btnClear.addEventListener('click', async () => {
     urlInputs.value = '';
+    queueItems = [];
     hasProceeded = false;
     parseAndBuildQueue();
     
@@ -2362,6 +2410,7 @@ if (btnBack) {
 if (btnClearInput) {
     btnClearInput.addEventListener('click', () => {
         urlInputs.value = '';
+        queueItems = [];
         hasProceeded = false;
         parseAndBuildQueue();
         if (initialActions) initialActions.classList.remove('hidden-el');

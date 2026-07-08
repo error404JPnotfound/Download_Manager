@@ -185,32 +185,48 @@ async def on_download_progress(event: cdp_browser.DownloadProgress):
 
 def is_direct_link(url):
     try:
-        # 1. Quick extension check on path
         parsed = urllib.parse.urlparse(url)
         path = parsed.path.lower()
+        
+        # 1. Quick extension check for common media/archive files
         direct_extensions = (
             '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz',
-            '.exe', '.msi', '.apk', '.dmg',
-            '.mp3', '.mp4', '.mkv', '.avi', '.mov', '.wav',
+            '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mp3', '.wav', '.flac', '.ogg', '.m4a',
             '.pdf', '.epub', '.docx', '.xlsx', '.pptx',
             '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico',
             '.iso', '.bin'
         )
         has_direct_ext = any(path.endswith(ext) for ext in direct_extensions)
         
-        # 2. Check query string for filename parameter with direct extension (common in signed S3/R2 URLs)
+        # 2. Check query string for filename parameter with direct extension
         query = parsed.query.lower()
         if 'filename' in query:
             if any(ext in query for ext in direct_extensions):
                 return True
         
-        # 3. Check Content-Type via GET request with Range: bytes=0-0 to support signed URLs
+        # 3. Check Content-Type via HEAD request first
+        try:
+            req = urllib.request.Request(
+                url,
+                method='HEAD',
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'}
+            )
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                content_type = resp.headers.get('Content-Type', '').lower()
+                if content_type:
+                    if 'text/html' in content_type:
+                        return False
+                    return True
+        except Exception:
+            pass
+
+        # 4. Fallback: Check Content-Type via GET request with Range bytes=0-0
         try:
             req = urllib.request.Request(
                 url,
                 method='GET',
                 headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
                     'Range': 'bytes=0-0'
                 }
             )
@@ -221,12 +237,16 @@ def is_direct_link(url):
                         return False
                     return True
         except Exception:
-            # If the request fails, fall back to the quick extension check
-            if has_direct_ext:
-                return True
+            pass
+
+        # 5. Fallback to direct extension matching if requests failed (e.g. rate-limit/offline)
+        if has_direct_ext:
+            return True
+            
     except Exception:
         pass
     return False
+
 
 async def download_direct_file(url, download_dir, progress_callback, log_callback):
     global is_downloading, is_paused
@@ -592,7 +612,8 @@ async def download_worker(urls, headless):
                 url_hash = hashlib.md5(url_clean.encode('utf-8')).hexdigest()
                 has_temp_file = (DOWNLOAD_DIR / f".rocket_{url_hash}.tmp").exists()
                 
-                if has_temp_file or is_direct_link(url_clean):
+                is_dir = has_temp_file or is_direct_link(url_clean)
+                if is_dir:
                     def direct_progress(received, total, state, filename):
                         class DummyEvent:
                             def __init__(self, rec, tot, st):
@@ -608,7 +629,18 @@ async def download_worker(urls, headless):
                         # Run on_download_progress asynchronously on the event loop
                         asyncio.run_coroutine_threadsafe(on_download_progress(event), asyncio.get_event_loop())
                     
-                    success = await download_direct_file(url_clean, DOWNLOAD_DIR, direct_progress, run_js)
+                    retries = 3
+                    success = False
+                    for attempt in range(retries):
+                        if not is_downloading:
+                            break
+                        if attempt > 0:
+                            run_js("js_log", "Worker", f"Retrying direct download ({attempt + 1}/{retries})...")
+                            await asyncio.sleep(3)
+                        success = await download_direct_file(url_clean, DOWNLOAD_DIR, direct_progress, run_js)
+                        if success:
+                            break
+                    
                     if success == "PAUSED":
                         paused_this_turn = True
                         continue
@@ -617,7 +649,10 @@ async def download_worker(urls, headless):
                         add_history_record(url_clean, final_filename, 'Completed')
                         continue
                     else:
-                        run_js("js_log", "Worker", "Direct download failed. Falling back to browser automation mode...")
+                        run_js("js_log", "Error", f"Direct download failed after {retries} attempts.")
+                        run_js("js_update_active_url", url_clean, "Failed")
+                        add_history_record(url_clean, "Direct Download Failed (Failed)", 'Cancelled')
+                        continue
     
                 if True:
                     # Load page

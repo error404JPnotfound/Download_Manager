@@ -84,11 +84,9 @@ const thanksSection = document.getElementById('thanks-section');
 const pickPrimary = document.getElementById('pick-primary');
 const pickSecondary = document.getElementById('pick-secondary');
 const pickAccent = document.getElementById('pick-accent');
-const pickBg = document.getElementById('pick-bg');
 const hexPrimary = document.getElementById('hex-primary');
 const hexSecondary = document.getElementById('hex-secondary');
 const hexAccent = document.getElementById('hex-accent');
-const hexBg = document.getElementById('hex-bg');
 
 const btnSoundPlay = document.getElementById('btn-sound-play');
 const sliderSoundVolume = document.getElementById('slider-sound-volume');
@@ -2085,23 +2083,34 @@ function applyCustomColors() {
     const primary = appConfig.custom_primary || '#ff6b6b';
     const secondary = appConfig.custom_secondary || '#4ecca3';
     const accent = appConfig.custom_accent || '#ffe66d';
-    const bg = appConfig.custom_bg || '#0f0e17';
+    const appTheme = appConfig.app_theme || 'midnight';
     
     document.documentElement.style.setProperty('--primary', primary);
     document.documentElement.style.setProperty('--primary-glow', hexToRgbA(primary, 0.2));
     document.documentElement.style.setProperty('--secondary', secondary);
     document.documentElement.style.setProperty('--accent', accent);
-    document.documentElement.style.setProperty('--bg-dark', bg);
     
     if (pickPrimary) pickPrimary.value = primary;
     if (pickSecondary) pickSecondary.value = secondary;
     if (pickAccent) pickAccent.value = accent;
-    if (pickBg) pickBg.value = bg;
     
     if (hexPrimary) hexPrimary.textContent = primary.toUpperCase();
     if (hexSecondary) hexSecondary.textContent = secondary.toUpperCase();
     if (hexAccent) hexAccent.textContent = accent.toUpperCase();
-    if (hexBg) hexBg.textContent = bg.toUpperCase();
+    
+    // Apply Background Theme
+    document.body.className = `theme-${appTheme}`;
+    
+    // Update theme cards UI
+    document.querySelectorAll('.theme-card').forEach(card => {
+        if (card.dataset.theme === appTheme) {
+            card.classList.add('active');
+            card.style.borderColor = 'var(--primary)';
+        } else {
+            card.classList.remove('active');
+            card.style.borderColor = 'transparent';
+        }
+    });
 }
 
 // Set up event listeners for inputs
@@ -2123,12 +2132,14 @@ if (pickAccent) {
         applyCustomColors();
     });
 }
-if (pickBg) {
-    pickBg.addEventListener('input', (e) => {
-        appConfig.custom_bg = e.target.value;
+
+// Event listeners for theme cards
+document.querySelectorAll('.theme-card').forEach(card => {
+    card.addEventListener('click', () => {
+        appConfig.app_theme = card.dataset.theme;
         applyCustomColors();
     });
-}
+});
 
 const btnSaveTheme = document.getElementById('btn-save-theme');
 if (btnSaveTheme) {
@@ -2138,7 +2149,7 @@ if (btnSaveTheme) {
             await api.save_config_value('custom_primary', appConfig.custom_primary || null);
             await api.save_config_value('custom_secondary', appConfig.custom_secondary || null);
             await api.save_config_value('custom_accent', appConfig.custom_accent || null);
-            await api.save_config_value('custom_bg', appConfig.custom_bg || null);
+            await api.save_config_value('app_theme', appConfig.app_theme || 'midnight');
             
             js_log("System", "Theme changes saved successfully to configuration.");
             
@@ -2163,16 +2174,16 @@ if (btnResetTheme) {
         delete appConfig.custom_primary;
         delete appConfig.custom_secondary;
         delete appConfig.custom_accent;
-        delete appConfig.custom_bg;
+        delete appConfig.app_theme;
         
         applyCustomColors();
-        js_log("System", "Theme colors reset to default Coral & Mint.");
+        js_log("System", "Theme colors reset to default Coral & Midnight.");
         
         const api = await getPythonApi();
         await api.save_config_value('custom_primary', null);
         await api.save_config_value('custom_secondary', null);
         await api.save_config_value('custom_accent', null);
-        await api.save_config_value('custom_bg', null);
+        await api.save_config_value('app_theme', null);
     });
 }
 

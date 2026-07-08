@@ -213,11 +213,73 @@
                             </div>
                         </div>
 
-                        <div class="color-picker-group">
-                            <label for="pick-bg" data-i18n="bg_color_label">Background Base Color</label>
-                            <div class="picker-row">
-                                <input type="color" id="pick-bg" value="#0f0e17">
-                                <span class="color-hex" id="hex-bg">#0F0E17</span>
+                    </div>
+
+                    <div class="customize-divider" style="margin: 24px 0; border-top: 1px solid rgba(255,255,255,0.08);"></div>
+                    
+                    <div class="theme-selection-group" style="margin-bottom: 24px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; color: var(--text-color);" data-i18n="app_theme_label">Premium Background Styles</label>
+                        <div class="theme-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px;">
+                            <div class="theme-card active" data-theme="midnight" style="border: 2px solid var(--primary); border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #0f0e17; background-image: radial-gradient(circle at 10% 20%, rgba(255, 107, 107, 0.1) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(78, 204, 163, 0.1) 0%, transparent 45%);"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Midnight</div>
+                            </div>
+                            <div class="theme-card" data-theme="aurora" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #1a0b2e; background-image: radial-gradient(circle at 50% 0%, #4c1d95 0%, transparent 50%), radial-gradient(circle at 100% 100%, #be185d 0%, transparent 50%);"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Aurora</div>
+                            </div>
+                            <div class="theme-card" data-theme="obsidian" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #000000;"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Obsidian</div>
+                            </div>
+                            <div class="theme-card" data-theme="hacker" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #051a0b; background-image: linear-gradient(0deg, transparent 24%, rgba(0, 255, 65, 0.05) 25%, rgba(0, 255, 65, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 65, 0.05) 75%, rgba(0, 255, 65, 0.05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(0, 255, 65, 0.05) 25%, rgba(0, 255, 65, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 65, 0.05) 75%, rgba(0, 255, 65, 0.05) 76%, transparent 77%, transparent); background-size: 20px 20px;"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Hacker</div>
+                            </div>
+                            <div class="theme-card" data-theme="sunset" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #1e0b1a; background-image: radial-gradient(circle at 20% 20%, #f97316 0%, transparent 50%), radial-gradient(circle at 80% 80%, #8b5cf6 0%, transparent 50%);"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Sunset</div>
+                            </div>
+                            <div class="theme-card" data-theme="oceanic" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #04111f; background-image: radial-gradient(circle at 10% 30%, #0ea5e9 0%, transparent 45%), radial-gradient(circle at 90% 70%, #10b981 0%, transparent 50%);"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Oceanic</div>
+                            </div>
+                            <div class="theme-card" data-theme="forest" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #081c15; background-image: radial-gradient(circle at 30% 20%, #2d6a4f 0%, transparent 50%), radial-gradient(circle at 70% 80%, #d8f3dc 0%, transparent 50%);"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Forest</div>
+                            </div>
+                            <div class="theme-card" data-theme="cyberpunk" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #0d0c1d; background-image: radial-gradient(circle at 10% 20%, #ec4899 0%, transparent 45%), radial-gradient(circle at 90% 80%, #06b6d4 0%, transparent 45%);"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Cyberpunk</div>
+                            </div>
+                            <div class="theme-card" data-theme="tokyo" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #060814; background-image: radial-gradient(circle at 15% 15%, #3b82f6 0%, transparent 45%), radial-gradient(circle at 85% 85%, #f43f5e 0%, transparent 45%);"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Tokyo</div>
+                            </div>
+                            <div class="theme-card" data-theme="nebula" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: #0b091a; background-image: radial-gradient(circle at 50% 10%, #6366f1 0%, transparent 50%), radial-gradient(circle at 90% 90%, #d946ef 0%, transparent 50%);"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Nebula</div>
+                            </div>
+                            <div class="theme-card" data-theme="custom" style="border: 2px solid transparent; border-radius: 8px; cursor: pointer; overflow: hidden; position: relative;">
+                                <div style="height: 60px; background: linear-gradient(135deg, var(--custom-grad-c1, #ff6b6b) 0%, var(--custom-grad-c2, #4ecca3) 100%);"></div>
+                                <div style="padding: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; background: rgba(30, 30, 50, 0.8);">Custom</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Custom Gradient Picker Controls -->
+                        <div id="custom-gradient-panel" style="display: none; margin-top: 16px; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; color: var(--text-color);">Custom Gradient Configuration</label>
+                            <div style="display: flex; gap: 24px; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label for="pick-grad-color1" style="font-size: 0.75rem; color: var(--text-muted);">Color Start</label>
+                                    <input type="color" id="pick-grad-color1" value="#ff6b6b" style="border: none; background: transparent; cursor: pointer; width: 32px; height: 32px; padding: 0;">
+                                    <span id="hex-grad-color1" style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">#FF6B6B</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label for="pick-grad-color2" style="font-size: 0.75rem; color: var(--text-muted);">Color End</label>
+                                    <input type="color" id="pick-grad-color2" value="#4ecca3" style="border: none; background: transparent; cursor: pointer; width: 32px; height: 32px; padding: 0;">
+                                    <span id="hex-grad-color2" style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">#4ECCA3</span>
+                                </div>
                             </div>
                         </div>
                     </div>

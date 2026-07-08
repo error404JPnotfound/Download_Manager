@@ -2105,3 +2105,91 @@ body.light-theme .tut-dot {
 body.light-theme .tutorial-brand {
     color: #1a1a2e;
 }
+
+/* Premium Background Themes */
+body.theme-midnight {
+    background-color: #0f0e17;
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(255, 107, 107, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(78, 204, 163, 0.15) 0%, transparent 45%);
+}
+
+body.theme-aurora {
+    background-color: #1a0b2e;
+    background-image: 
+        radial-gradient(circle at 50% 0%, rgba(76, 29, 149, 0.4) 0%, transparent 50%), 
+        radial-gradient(circle at 100% 100%, rgba(190, 24, 93, 0.4) 0%, transparent 50%);
+    background-size: 100% 100%;
+}
+
+body.theme-obsidian {
+    background-color: #000000;
+    background-image: none;
+}
+
+body.theme-hacker {
+    background-color: #051a0b;
+    background-image: 
+        linear-gradient(0deg, transparent 24%, rgba(0, 255, 65, 0.03) 25%, rgba(0, 255, 65, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 65, 0.03) 75%, rgba(0, 255, 65, 0.03) 76%, transparent 77%, transparent), 
+        linear-gradient(90deg, transparent 24%, rgba(0, 255, 65, 0.03) 25%, rgba(0, 255, 65, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 65, 0.03) 75%, rgba(0, 255, 65, 0.03) 76%, transparent 77%, transparent);
+    background-size: 50px 50px;
+}
+
+body.theme-sunset {
+    background-color: #1e0b1a;
+    background-image:
+        radial-gradient(circle at 20% 20%, rgba(249, 115, 22, 0.18) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.18) 0%, transparent 50%);
+}
+
+body.theme-oceanic {
+    background-color: #04111f;
+    background-image:
+        radial-gradient(circle at 10% 30%, rgba(14, 165, 233, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 90% 70%, rgba(16, 185, 129, 0.18) 0%, transparent 50%);
+}
+
+body.theme-forest {
+    background-color: #081c15;
+    background-image:
+        radial-gradient(circle at 30% 20%, rgba(45, 106, 79, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, rgba(216, 243, 220, 0.08) 0%, transparent 50%);
+}
+
+body.theme-cyberpunk {
+    background-color: #0d0c1d;
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(236, 72, 153, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.18) 0%, transparent 45%);
+}
+
+body.theme-tokyo {
+    background-color: #060814;
+    background-image:
+        radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.2) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(244, 63, 94, 0.2) 0%, transparent 45%);
+}
+
+body.theme-nebula {
+    background-color: #0b091a;
+    background-image:
+        radial-gradient(circle at 50% 10%, rgba(99, 102, 241, 0.22) 0%, transparent 50%),
+        radial-gradient(circle at 90% 90%, rgba(217, 70, 239, 0.2) 0%, transparent 50%);
+}
+
+body.theme-custom {
+    background-color: var(--custom-grad-c1, #ff6b6b);
+    background-image: linear-gradient(135deg, var(--custom-grad-c1, #ff6b6b) 0%, var(--custom-grad-c2, #4ecca3) 100%);
+}
+
+/* Theme Selection UI */
+.theme-card {
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.theme-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.theme-card.active {
+    box-shadow: 0 0 0 1px var(--primary), 0 4px 12px rgba(0,0,0,0.5);
+}

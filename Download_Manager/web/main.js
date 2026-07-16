@@ -1530,8 +1530,10 @@ async function startQueueDownloads(urls) {
         return !lower.includes('youtube.com') && !lower.includes('youtu.be') && !lower.includes('fuckingfast');
     });
 
-    if (hasFuckingFast) {
+    if (hasFuckingFast && !appConfig.hide_ff_warning) {
         const ffModal = document.getElementById('ff-confirm-modal');
+        const chkFfDontShow = document.getElementById('chk-ff-dont-show');
+        if (chkFfDontShow) chkFfDontShow.checked = false;
         ffModal.classList.remove('hidden');
         const approved = await new Promise((resolve) => {
             const btnCancel = document.getElementById('btn-ff-modal-cancel');
@@ -1541,15 +1543,30 @@ async function startQueueDownloads(urls) {
                 btnContinue.removeEventListener('click', onContinue);
             };
             const onCancel = () => { ffModal.classList.add('hidden'); cleanup(); resolve(false); };
-            const onContinue = () => { ffModal.classList.add('hidden'); cleanup(); resolve(true); };
+            const onContinue = async () => {
+                if (chkFfDontShow && chkFfDontShow.checked) {
+                    appConfig.hide_ff_warning = true;
+                    try {
+                        const api = await getPythonApi();
+                        await api.save_config_value('hide_ff_warning', true);
+                    } catch (e) {
+                        console.error("Failed to save FuckingFast warning config:", e);
+                    }
+                }
+                ffModal.classList.add('hidden');
+                cleanup();
+                resolve(true);
+            };
             btnCancel.addEventListener('click', onCancel);
             btnContinue.addEventListener('click', onContinue);
         });
         if (!approved) return;
     }
 
-    if (hasHighSpeed) {
+    if (hasHighSpeed && !appConfig.hide_hs_warning) {
         const hsModal = document.getElementById('hs-confirm-modal');
+        const chkHsDontShow = document.getElementById('chk-hs-dont-show');
+        if (chkHsDontShow) chkHsDontShow.checked = false;
         hsModal.classList.remove('hidden');
         const approved = await new Promise((resolve) => {
             const btnCancel = document.getElementById('btn-hs-modal-cancel');
@@ -1559,7 +1576,20 @@ async function startQueueDownloads(urls) {
                 btnContinue.removeEventListener('click', onContinue);
             };
             const onCancel = () => { hsModal.classList.add('hidden'); cleanup(); resolve(false); };
-            const onContinue = () => { hsModal.classList.add('hidden'); cleanup(); resolve(true); };
+            const onContinue = async () => {
+                if (chkHsDontShow && chkHsDontShow.checked) {
+                    appConfig.hide_hs_warning = true;
+                    try {
+                        const api = await getPythonApi();
+                        await api.save_config_value('hide_hs_warning', true);
+                    } catch (e) {
+                        console.error("Failed to save HighSpeed warning config:", e);
+                    }
+                }
+                hsModal.classList.add('hidden');
+                cleanup();
+                resolve(true);
+            };
             btnCancel.addEventListener('click', onCancel);
             btnContinue.addEventListener('click', onContinue);
         });
@@ -2138,8 +2168,45 @@ document.querySelectorAll('.theme-card').forEach(card => {
     card.addEventListener('click', () => {
         appConfig.app_theme = card.dataset.theme;
         applyCustomColors();
+        // Show/hide custom gradient panel
+        const gradPanel = document.getElementById('custom-gradient-panel');
+        if (gradPanel) {
+            gradPanel.style.display = (card.dataset.theme === 'custom') ? 'block' : 'none';
+        }
     });
 });
+
+// Custom gradient color pickers
+const pickGradColor1 = document.getElementById('pick-grad-color1');
+const pickGradColor2 = document.getElementById('pick-grad-color2');
+const hexGradColor1 = document.getElementById('hex-grad-color1');
+const hexGradColor2 = document.getElementById('hex-grad-color2');
+
+function applyCustomGradient() {
+    const c1 = (appConfig.custom_grad_c1 || '#ff6b6b');
+    const c2 = (appConfig.custom_grad_c2 || '#4ecca3');
+    document.documentElement.style.setProperty('--custom-grad-c1', c1);
+    document.documentElement.style.setProperty('--custom-grad-c2', c2);
+    if (pickGradColor1) pickGradColor1.value = c1;
+    if (pickGradColor2) pickGradColor2.value = c2;
+    if (hexGradColor1) hexGradColor1.textContent = c1.toUpperCase();
+    if (hexGradColor2) hexGradColor2.textContent = c2.toUpperCase();
+}
+
+if (pickGradColor1) {
+    pickGradColor1.addEventListener('input', async (e) => {
+        appConfig.custom_grad_c1 = e.target.value;
+        if (hexGradColor1) hexGradColor1.textContent = e.target.value.toUpperCase();
+        applyCustomGradient();
+    });
+}
+if (pickGradColor2) {
+    pickGradColor2.addEventListener('input', async (e) => {
+        appConfig.custom_grad_c2 = e.target.value;
+        if (hexGradColor2) hexGradColor2.textContent = e.target.value.toUpperCase();
+        applyCustomGradient();
+    });
+}
 
 const btnSaveTheme = document.getElementById('btn-save-theme');
 if (btnSaveTheme) {
@@ -2150,11 +2217,14 @@ if (btnSaveTheme) {
             await api.save_config_value('custom_secondary', appConfig.custom_secondary || null);
             await api.save_config_value('custom_accent', appConfig.custom_accent || null);
             await api.save_config_value('app_theme', appConfig.app_theme || 'midnight');
+            // Save custom gradient colors if set
+            if (appConfig.custom_grad_c1) await api.save_config_value('custom_grad_c1', appConfig.custom_grad_c1);
+            if (appConfig.custom_grad_c2) await api.save_config_value('custom_grad_c2', appConfig.custom_grad_c2);
             
             js_log("System", "Theme changes saved successfully to configuration.");
             
             const originalText = btnSaveTheme.textContent;
-            btnSaveTheme.textContent = "Saved!";
+            btnSaveTheme.textContent = "Saved! ✓";
             btnSaveTheme.style.background = "var(--secondary)";
             btnSaveTheme.style.color = "#000";
             setTimeout(() => {
@@ -2175,15 +2245,28 @@ if (btnResetTheme) {
         delete appConfig.custom_secondary;
         delete appConfig.custom_accent;
         delete appConfig.app_theme;
+        delete appConfig.custom_grad_c1;
+        delete appConfig.custom_grad_c2;
         
         applyCustomColors();
+        applyCustomGradient();
         js_log("System", "Theme colors reset to default Coral & Midnight.");
         
-        const api = await getPythonApi();
-        await api.save_config_value('custom_primary', null);
-        await api.save_config_value('custom_secondary', null);
-        await api.save_config_value('custom_accent', null);
-        await api.save_config_value('app_theme', null);
+        // Hide gradient panel on reset
+        const gradPanel = document.getElementById('custom-gradient-panel');
+        if (gradPanel) gradPanel.style.display = 'none';
+        
+        try {
+            const api = await getPythonApi();
+            await api.save_config_value('custom_primary', null);
+            await api.save_config_value('custom_secondary', null);
+            await api.save_config_value('custom_accent', null);
+            await api.save_config_value('app_theme', null);
+            await api.save_config_value('custom_grad_c1', null);
+            await api.save_config_value('custom_grad_c2', null);
+        } catch (err) {
+            console.error("Failed to reset theme config:", err);
+        }
     });
 }
 
@@ -2499,18 +2582,19 @@ async function initializeApp() {
         appContainer.classList.add('revealed');
     }
     
-    try {
-        triggerMusicOnStartup();
-    } catch (e) {
-        console.error("Failed to trigger background music:", e);
-    }
-
     if (api) {
-        // 1. Fetch Configuration
+        // 1. Fetch Configuration FIRST (must come before music and theme)
         try {
             appConfig = (await api.get_config()) || {};
         } catch (e) {
             console.error("Failed to load appConfig:", e);
+        }
+
+        // Apply startup music AFTER config is loaded so the setting is respected
+        try {
+            triggerMusicOnStartup();
+        } catch (e) {
+            console.error("Failed to trigger background music:", e);
         }
 
         // Apply loaded language
@@ -2521,11 +2605,22 @@ async function initializeApp() {
             console.error("Failed to apply language on initialize:", e);
         }
 
-        // 2. Theme colors initialization based on config
+        // 2. Theme colors and gradient initialization based on config
         try {
             applyCustomColors();
         } catch (e) {
             console.error("Failed to initialize theme colors:", e);
+        }
+        // 2b. Apply saved custom gradient colors
+        try {
+            applyCustomGradient();
+            // Show gradient panel if custom theme is active
+            if ((appConfig.app_theme || 'midnight') === 'custom') {
+                const gradPanel = document.getElementById('custom-gradient-panel');
+                if (gradPanel) gradPanel.style.display = 'block';
+            }
+        } catch (e) {
+            console.error("Failed to initialize custom gradient:", e);
         }
 
         // 4. Ensure console section is hidden by default

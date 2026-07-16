@@ -608,11 +608,101 @@ async def download_worker(urls, headless):
                     
                     continue
     
+                # ── FuckingFast special handling (scrape direct link from HTML) ──────────────
+                is_fuckingfast = 'fuckingfast' in url_clean.lower()
+                if is_fuckingfast:
+                    run_js("js_log", "Worker", "FuckingFast link detected – extracting direct download URL from page HTML...")
+                    run_js("js_update_active_url", url_clean, "Analyzing link...")
+                    extracted_url = None
+                    try:
+                        import re as _re
+                        ff_req = urllib.request.Request(
+                            url_clean,
+                            headers={
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                                'Accept-Language': 'en-US,en;q=0.5',
+                                'Referer': 'https://fuckingfast.co/',
+                            }
+                        )
+                        with urllib.request.urlopen(ff_req, timeout=15) as ff_resp:
+                            html_content = ff_resp.read().decode('utf-8', errors='replace')
+                        
+                        # Pattern 1: href link pointing to a downloadable file
+                        patterns = [
+                            r'href=["\']([^"\']*fuckingfast\.co/[^"\']*(?:\.zip|\.rar|\.7z|\.mp4|\.mkv|\.mp3|\.exe|\.iso|\.tar|\.gz)[^"\']*)["\']',
+                            r'href=["\']([^"\']+)["\'][^>]*>[^<]*(?:DOWNLOAD|Download|download)',
+                            r'"downloadUrl"\s*:\s*"([^"]+)"',
+                            r"'downloadUrl'\s*:\s*'([^']+)'",
+                            r'action=["\']([^"\']+)["\']',
+                            r'data-url=["\']([^"\']+)["\']',
+                            r'href=["\']([^"\']+\.[a-zA-Z0-9]{2,5})["\'][^>]*class=["\'][^"\']*(?:btn|download)[^"\']*["\']',
+                        ]
+                        for pat in patterns:
+                            m = _re.search(pat, html_content, _re.IGNORECASE)
+                            if m:
+                                candidate = m.group(1).strip()
+                                if candidate.startswith('http') and candidate != url_clean:
+                                    extracted_url = candidate
+                                    break
+                        
+                        if not extracted_url:
+                            # Broad search: any https link with a file extension
+                            all_links = _re.findall(r'https?://[^\s"\'<>]+', html_content)
+                            file_exts = ('.zip', '.rar', '.7z', '.tar', '.gz', '.mp4', '.mkv', '.avi', '.mp3', '.wav', '.flac', '.exe', '.iso', '.pdf', '.epub')
+                            for link in all_links:
+                                link_lower = link.lower().split('?')[0]
+                                if any(link_lower.endswith(ext) for ext in file_exts):
+                                    extracted_url = link
+                                    break
+                    except Exception as ff_err:
+                        run_js("js_log", "Error", f"FuckingFast page fetch failed: {ff_err}")
+                    
+                    if extracted_url:
+                        run_js("js_log", "Worker", f"Extracted direct URL from FuckingFast: {extracted_url[:80]}...")
+                        # Now download the extracted URL directly
+                        def ff_direct_progress(received, total, state, filename):
+                            class DummyEvent:
+                                def __init__(self, rec, tot, st):
+                                    self.received_bytes = rec
+                                    self.total_bytes = tot
+                                    self.state = st
+                            if filename:
+                                download_speed_info[url_clean]['filename'] = filename
+                                run_js("js_update_active_url", url_clean, state.capitalize(), filename)
+                            event = DummyEvent(received, total, state)
+                            asyncio.run_coroutine_threadsafe(on_download_progress(event), asyncio.get_event_loop())
+                        
+                        retries = 3
+                        success = False
+                        for attempt in range(retries):
+                            if not is_downloading:
+                                break
+                            if attempt > 0:
+                                run_js("js_log", "Worker", f"Retrying FuckingFast download ({attempt + 1}/{retries})...")
+                                await asyncio.sleep(2)
+                            success = await download_direct_file(extracted_url, DOWNLOAD_DIR, ff_direct_progress, run_js)
+                            if success:
+                                break
+                        
+                        if success:
+                            final_filename = download_speed_info[url_clean].get('filename', 'FuckingFast File')
+                            add_history_record(url_clean, final_filename, 'Completed')
+                        else:
+                            run_js("js_log", "Error", f"FuckingFast direct download failed after {retries} attempts.")
+                            run_js("js_update_active_url", url_clean, "Failed")
+                            add_history_record(url_clean, "FuckingFast Download", 'Cancelled')
+                        continue
+                    else:
+                        run_js("js_log", "Worker", "Could not extract a direct URL from FuckingFast page. Falling back to browser automation...")
+                        # Fall through to browser automation below
+                
                 # Direct link fast download detection
                 url_hash = hashlib.md5(url_clean.encode('utf-8')).hexdigest()
                 has_temp_file = (DOWNLOAD_DIR / f".rocket_{url_hash}.tmp").exists()
                 
                 is_dir = has_temp_file or is_direct_link(url_clean)
+
                 if is_dir:
                     def direct_progress(received, total, state, filename):
                         class DummyEvent:
